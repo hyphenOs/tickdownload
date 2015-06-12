@@ -1,0 +1,2 @@
+# regular expression to match divident in corporate actions
+r = re.compile(r'(.*?)(?P<Div>\d+\.?\d*(?:\/-|\%))')
