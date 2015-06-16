@@ -70,18 +70,16 @@ def _do_get_data_for_security(script_code, sdate, edate):
     form_data.update(other_data)
     form_data.update(dl2_map)
 
+    y = requests.post(url, data=form_data, stream=True)
 
-    fname = script_code + '.csv'
-    with open(fname, 'wb') as handle:
-
-        y = requests.post(url, data=form_data, stream=True)
-
-        if y.ok:
+    if y.ok:
+        fname = script_code + '.csv'
+        with open(fname, 'wb') as handle:
             for block in y.iter_content(1024):
                 if not block:
                     break
                 handle.write(block)
-        else:
-            print y.text
+    else:
+        print y.text
 
 get_data_for_security('530715', GLOBAL_START_DATE)
