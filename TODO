@@ -1,12 +1,26 @@
 NSE
 ---
-1. Get Corp Actions Data. Store only bonus and split data in a CSV file
+1. Get Corp Actions Data. 
+   - Bonus - DONE
+   - Divident - DONE
+   - Split
 
 BSE
 ---
-1. Programmatically generate list of all securities
-2. Get Corp Actions Data, store only bonus and split data in a CSV file
+1. Programmatically generate list of all securities - DONE
+2. Get Corp Actions Data
+   - Bonus
+   - Divident
+   - Split 
+   (This data is horrible. We'd just try our best)
 
+
+Experimentation - 
+1. Create a Relational Database of Stocks 
+   - Stocks Table
+     - Security ID, Security Name, Start Date, BSE Symbol, NSE Symbol, BSE ID
+   - Corp Action Tables 
+     - Foreign Key  Security ID. 
 
 Storing data in HDF5 and experimentation. Bulk of June should be 
 experimentation
