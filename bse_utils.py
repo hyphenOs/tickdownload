@@ -24,30 +24,45 @@ import sys
 
 from collections import namedtuple
 
-GROUPS_INTERESTED = ('A', 'B', 'T', 'D', 'DT')
+# The following two are global because we want to quickly update them if req
+# but we don't want them to be imported. This is very internal
+_GROUPS_INTERESTED = ('A', 'B', 'T', 'D', 'DT')
+_STOCKS_LIST_URL = 'http://www.bseindia.com/corporates/List_Scrips.aspx?'\
+                    'expandable=1'
 
-url = 'http://www.bseindia.com/corporates/List_Scrips.aspx?expandable=1'
-x = requests.get(url)
+scrip_base_info_bse = namedtuple('ScripBaseinfoBSE', ['bseid', 'symbol', 'name'])
 
-if not x.ok:
-    sys.exit(-1)
+def get_all_stocks_data(start=None, count=-1):
+    """ Downloads the List of All Active stocks in BSE in groups A,B,T,D,DT
+        If optional start and count are given, only downloads a subset from
+        start -> start + count
+    """
 
-html = bs4.BeautifulSoup(x.text)
+    start = start or 0
 
-hidden_elems = html.findAll(attrs={'type':'hidden'})
+    try:
+        start = int(start) or 0
+        count = int(count) or -1
+    except ValueError: # Make sure both start and count can be 'int'ed
+        raise
 
-form_data = {}
-for el in hidden_elems:
-    m = el.attrMap
-    if m.has_key('value'):
-        form_data[m['name']] = m['value']
+    print "Getting...", _STOCKS_LIST_URL
+    x = requests.get(_STOCKS_LIST_URL)
 
+    if not x.ok:
+        raise StopIteration # FIXME : raise correct exception
 
-for k,v in form_data.items():
-    print k, len(v)
+    html = bs4.BeautifulSoup(x.text)
 
+    hidden_elems = html.findAll(attrs={'type':'hidden'})
 
-other_data = {
+    form_data = {}
+    for el in hidden_elems:
+        m = el.attrMap
+        if m.has_key('value'):
+            form_data[m['name']] = m['value']
+
+    other_data = {
             'WINDOW_NAMER' : '1',
             'myDestination': '#',
             'ctl00$ContentPlaceHolder1$hdnCode' : '',
@@ -56,44 +71,66 @@ other_data = {
             'ctl00$ContentPlaceHolder1$getTExtData' : '',
             'ctl00$ContentPlaceHolder1$ddlGroup' : 'Select',
             'ctl00$ContentPlaceHolder1$ddlIndustry' : 'Select',
-}
-buttons_data = {
+    }
+
+    buttons_data = {
             'ctl00$ContentPlaceHolder1$btnSubmit.x' : '34',
-            'ctl00$ContentPlaceHolder1$btnSubmit.y' : '8'
-}
+            'ctl00$ContentPlaceHolder1$btnSubmit.y' : '8' }
 
-more_data_1 = { '__EVENTTARGET' : '', '__EVENTARGUMENT' : '' }
-more_data_2 = { '__EVENTTARGET' : 'ctl00$ContentPlaceHolder1$lnkDownload', '__EVENTARGUMENT' : '' }
+    more_data_2 = { '__EVENTTARGET' : 'ctl00$ContentPlaceHolder1$lnkDownload',
+                '__EVENTARGUMENT' : '' }
 
-form_data.update(other_data)
-form_data.update(buttons_data)
+    form_data.update(other_data)
+    form_data.update(buttons_data)
 
-print form_data.keys()
-y = requests.post(url, data=form_data, stream=True)
-if y.ok:
-    html2 = bs4.BeautifulSoup(y.text)
-else:
-    print y.status_code
+    print "Posting First Data...", _STOCKS_LIST_URL
+    y = requests.post(_STOCKS_LIST_URL, data=form_data, stream=True)
+    if y.ok:
+        html2 = bs4.BeautifulSoup(y.text)
+    else:
+        print y.status_code
 
-hidden_elems = html2.findAll(attrs={'type':'hidden'})
-print hidden_elems
+    hidden_elems = html2.findAll(attrs={'type':'hidden'})
 
-form_data = {}
-for el in hidden_elems:
-    m = el.attrMap
-    if m.has_key('value'):
-        form_data[m['name']] = m['value']
+    form_data = {}
+    for el in hidden_elems:
+        m = el.attrMap
+        if m.has_key('value'):
+            form_data[m['name']] = m['value']
 
-for k,v in form_data.items():
-    print k, len(v)
+    form_data.update(other_data)
+    form_data.update(more_data_2)
 
-form_data.update(other_data)
-form_data.update(more_data_2)
 
-print form_data.keys()
+    print "Posting Second Data...", _STOCKS_LIST_URL
+    y = requests.post(_STOCKS_LIST_URL, data=form_data, stream=True)
+    if not y.ok:
+        raise StopIteration # FIXME: Raise a correct error
 
-y = requests.post(url, data=form_data, stream=True)
-if y.ok:
-    print y.text
-else:
-    print y.status_code
+    i = 0
+    for line in y.text.split("\n"):
+        line = line.split(",")
+        if len(line) < 9:
+            continue
+        if line[0].lower().strip() == 'security code':
+            continue
+        group = line[4].strip()
+        if group not in _GROUPS_INTERESTED:
+            continue
+        if i < start:
+            i += 1
+            continue
+
+        if count > 0 and i >= start+count:
+            raise StopIteration
+
+        bse_id = line[0].strip()
+        symbol = line[1].strip().upper()
+        name = line[2].strip()
+        i += 1
+        yield scrip_base_info_bse(bse_id, symbol, name)
+
+
+if __name__ == '__main__':
+    for x in get_all_stocks_data(count=1):
+        print x

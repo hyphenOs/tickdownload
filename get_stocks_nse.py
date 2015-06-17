@@ -109,9 +109,9 @@ def get_all_stocks_data(start_index=None, count=-1):
     of data @start_index for @count number of stocks"""
 
     i = 0
-    for sym, name, sdate in get_all_stocks_list(start_index, count):
+    for scrip in get_all_stocks_list(start_index, count):
         time.sleep(random.randint(1,5))
-        get_data_for_security(sym, sdate)
+        get_data_for_security(scrip.symbol, scrip.listing_date)
 
     # We downloaded. There might be some errors, we try this again
     global _failed

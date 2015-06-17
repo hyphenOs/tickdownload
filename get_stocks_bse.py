@@ -5,11 +5,13 @@ import requests
 import BeautifulSoup as bs4
 from datetime import datetime as dt
 
+from bse_utils import get_all_stocks_data
 
 GLOBAL_START_DATE = '01/01/2002'
 DATE_FORMAT = '%d/%m/%Y'
 
 def get_data_for_security(script_code, sdate, edate=None):
+    print 'xxx'
     sdate = dt.strptime(sdate, '%d/%m/%Y')
     edate = dt.strptime(edate, '%d/%m/%Y') if edate is not None else dt.today()
     _do_get_data_for_security(script_code, sdate, edate)
@@ -21,6 +23,7 @@ def _do_get_data_for_security(script_code, sdate, edate):
     url = 'http://www.bseindia.com/markets/equity/EQReports/'\
             'StockPrcHistori.aspx?expandable=7&flag=0'
 
+    print "Getting...", url
     x = requests.get(url)
 
     html = bs4.BeautifulSoup(x.text)
@@ -82,4 +85,7 @@ def _do_get_data_for_security(script_code, sdate, edate):
     else:
         print y.text
 
-get_data_for_security('530715', GLOBAL_START_DATE)
+if  __name__ == '__main__':
+
+    for x in get_all_stocks_data(100,1):
+        get_data_for_security(x.bseid, GLOBAL_START_DATE)
