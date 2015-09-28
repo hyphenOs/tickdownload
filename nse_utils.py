@@ -6,6 +6,8 @@ import requests
 
 from collections import namedtuple
 
+scrip_ohlcvd_info = namedtuple('ScripOHLCVD',
+                            ['open', 'high', 'low', 'close', 'volume', 'deliv'])
 scrip_base_info_nse = namedtuple('ScripBaseinfoNSE',
                                     ['symbol', 'name', 'listing_date'])
 
@@ -46,6 +48,31 @@ def get_all_stocks_list(start=None, count=-1):
             yield a
     else:
         raise StopIteration
+
+def get_name_change_tuples():
+    """Returns a list of name changes as a tuples, the most current name
+    is the last name in the tuple."""
+
+    r = requests.get('http://nseindia.com/content/equities/symbolchange.csv')
+    if not r.ok:
+        return []
+
+    name_tuples = []
+    changed_names = []
+    for line in r.text.split('\n'):
+        x = line.split(',')
+        if len(x) < 3:
+            continue
+        prev, cur = x[1].strip().upper(), x[2].strip().upper()
+        if prev in changed_names:
+            tup = filter(lambda x: x[len(x)-1] == prev, name_tuples)
+            name_tuples.remove(tup[0])
+            name_tuples.append((tup[0] + (cur,)))
+        else:
+            name_tuples.append((prev, cur,))
+        changed_names.append(cur)
+
+    return name_tuples
 
 if __name__ == '__main__':
     for x in get_all_stocks_list(count=2):

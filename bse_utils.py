@@ -132,5 +132,5 @@ def get_all_stocks_data(start=None, count=-1):
 
 
 if __name__ == '__main__':
-    for x in get_all_stocks_data(count=1):
+    for x in get_all_stocks_data(count=-1):
         print x

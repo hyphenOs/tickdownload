@@ -1,4 +1,8 @@
 temp*
 **/*csv
+*csv
+*zip
+**/*zip
 data*
 *pyc
+**/*sqlite

@@ -87,5 +87,6 @@ def _do_get_data_for_security(script_code, sdate, edate):
 
 if  __name__ == '__main__':
 
-    for x in get_all_stocks_data(100,1):
-        get_data_for_security(x.bseid, GLOBAL_START_DATE)
+    get_data_for_security('531715', GLOBAL_START_DATE)
+    #for x in get_all_stocks_data(100,1):
+        #get_data_for_security(x.bseid, GLOBAL_START_DATE)

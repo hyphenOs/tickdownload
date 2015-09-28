@@ -121,6 +121,6 @@ def get_corp_action_csv(sym_name):
 if __name__ == '__main__':
     #for x in get_all_stocks_list(start=500, count=2):
     #    print get_corp_action_csv(x.symbol)
-    corp_actions =  get_corp_action_csv('gujfluoro')
+    corp_actions =  get_corp_action_csv('infy')
     for x in corp_actions:
         print x

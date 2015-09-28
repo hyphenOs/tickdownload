@@ -69,7 +69,7 @@ def _do_get_data_for_security(symbol, sdate, edate, errs=0):
                 'segmentLink=3&symbolCount=2&series=ALL&dateRange=+&'\
                 'fromDate=%s&toDate=%s&dataType=PRICEVOLUMEDELIVERABLE' % \
                 (symbol, s_, e_)
-        #print "Getting...", url
+        print "Getting...", url
         r = requests.get(url, allow_redirects=False,
                             headers=headers)
         print r.status_code
@@ -97,6 +97,9 @@ def _do_get_data_for_security(symbol, sdate, edate, errs=0):
             else:
                 print "*****Error in downloading for : ", symbol, s_, e_
                 _failed.put(sym_tuple(symbol, sdate, e, errs+1))
+        else:
+            print r.status_code
+            _failed.put(sym_tuple(symbol, sdate, e, errs+1))
 
         sdate = e + td(days=1)
         e = sdate + td(days=DAYS_AT_ONCE)
@@ -125,4 +128,4 @@ def get_all_stocks_data(start_index=None, count=-1):
 
 
 if __name__ == '__main__':
-    get_all_stocks_data(1,1)
+    get_all_stocks_data(800,1)
