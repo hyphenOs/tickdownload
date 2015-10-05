@@ -1,3 +1,6 @@
+#
+# Refer to LICENSE file and README file for licensing information.
+#
 """Get's data for corporate Actions for a given stock on NSE. Parses and
 stores the bonus and face value splits and dividends.
 

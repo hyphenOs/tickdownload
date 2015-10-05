@@ -1,3 +1,6 @@
+#
+# Refer to LICENSE file and README file for licensing information.
+#
 """
 Download All stocks data from the NSE website. Here we make use of a stocks
 CSV file - which has 'symbol and start date. We start from that date

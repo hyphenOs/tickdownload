@@ -1,3 +1,6 @@
+#
+# Refer to LICENSE file and README file for licensing information.
+#
 """ Downloads Corp Actions for a given security, We are mainly interested in
 bonus and splits, but doesn't harm to keep noting others.
 

@@ -1,3 +1,6 @@
+#
+# Refer to LICENSE file and README file for licensing information.
+#
 # A simple script that tries to download the historical stock data
 # for a BSE scrip
 

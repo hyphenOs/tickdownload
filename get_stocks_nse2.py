@@ -1,3 +1,6 @@
+#
+# Refer to LICENSE file and README file for licensing information.
+#
 """
 Uses daily bhavcopy to download historical data for all stocks.
 One challenge is, bhavcopy has the symbol name for that day. In case of NSE,

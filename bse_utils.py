@@ -1,3 +1,6 @@
+#
+# Refer to LICENSE file and README file for licensing information.
+#
 """
 Utility functions used by other modules - eg. getting a List of stocks
 

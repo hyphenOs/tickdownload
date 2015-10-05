@@ -1,3 +1,6 @@
+#
+# Refer to LICENSE file and README file for licensing information.
+#
 # Generic Utils to be used by all
 import os
 import time

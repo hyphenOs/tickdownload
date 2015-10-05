@@ -1,3 +1,6 @@
+#
+# Refer to LICENSE file and README file for licensing information.
+#
 """
 Common utilities for getting stocks, indices data from NSE.
 """

@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+#
+# Refer to LICENSE file and README file for licensing information.
+#
 
 import requests
 import sys
