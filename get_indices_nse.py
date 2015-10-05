@@ -74,6 +74,7 @@ def get_index(idx):
         s_ = s.strftime(DATE_FORMAT)
         r = _do_get_index(idx, s_, e_)
         if r:
+            print len(r)
             all_data.extend(r)
 
         time.sleep(random.randint(1,5))

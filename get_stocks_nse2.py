@@ -9,7 +9,6 @@ updates (eg. update data corresponding to a symbol with a new name are easier
 to handle in SQLite than dealing with files).
 """
 
-
 import requests
 import sys
 from datetime import datetime as dt
@@ -157,7 +156,8 @@ def _update_bhavcopy(strdate, stocks_dict, fname=None):
             insert_stmt_final = insert_stmt % { 'sym' : key, 'date': fdate,
                                                 'o' : val.open, 'h': val.high,
                                                 'l' : val.low, 'c': val.close,
-                                                'v' : val.volume, 'd': val.deliv }
+                                                'v' : val.volume, 'd': val.deliv
+                                                }
             print "Executing:", insert_stmt_final
             cur.execute(insert_stmt_final)
 
@@ -179,6 +179,21 @@ def _create_tables(fname=None):
     with sqlite3.connect(fname) as cursor:
         for stmt in _create_stmts.values():
             cursor.execute(stmt)
+
+def _apply_name_changes_to_db(syms, fname=None):
+    """Changes security names in scrip_info table so the name of the security
+    is always the latest."""
+    fname = fname or _DEF_SQLIITE_FNAME
+    update_stmt = '''update scrip_info set name = '{}' where name in ({})'''
+    with sqlite3.connect(fname) as con:
+        cur = con.cursor()
+        for sym in syms:
+            old = sym[:-1]
+            new = sym[-1]
+            olds = ','.join(["'%s'" % x for x in old])
+            update_stmt_final = update_stmt.format(new, olds)
+            cur.execute(update_stmt_final)
+        con.commit()
 
 if __name__ == '__main__':
     # We run the full program
@@ -236,3 +251,9 @@ if __name__ == '__main__':
 
         cur_date += td(1)
 
+    # Apply the name changes to the DB
+    sym_change_tuples = get_name_change_tuples()
+    if len(sym_change_tuples) == 0:
+        print "No name change tuples found..."
+        sys.exit(-1)
+    _apply_name_changes_to_db(sym_change_tuples)

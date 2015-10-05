@@ -75,6 +75,7 @@ def get_name_change_tuples():
     return name_tuples
 
 if __name__ == '__main__':
+    print get_name_change_tuples()
     for x in get_all_stocks_list(count=2):
         print x
 
