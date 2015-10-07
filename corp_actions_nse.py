@@ -5,7 +5,12 @@
 stores the bonus and face value splits and dividends.
 
 For NSE we have data reliably from 1st Jan 2005. For older data, we might
-have to refer to BSE data"""
+have to refer to BSE data.
+
+For every corp action, we output data in the following form -
+scrip, ex_date, type(B:bonus,D:dividend,S:split), ratio, value.
+ratio < 1.0 for bonus/split, value in Rs. for div"""
+
 
 import requests
 
@@ -24,10 +29,12 @@ CorpAction = namedtuple('CorpAction', ['sym', 'name', 'industry',
                                         'rec_date', 'bc_sdate', 'bc_edate',
                                         'nd_sdate', 'nd_edate'])
 
+# Don't ask me how I got these regex, lots of trial/error
 _div_regex = re.compile(r'(?:.*?)(?P<div>(?:(?:div.*?)(\d+%)|(?:div.*?(rs\.?)?)\s*(\d+\.?\d*)))')
 _rsr_regex = re.compile(r'rs\.?')
 _num_per_r = re.compile(r'(\d+\.?\d{0,2}%?)')
 _bonus_regex = re.compile(r'bon.*?(\d+)\s*:\s*(\d)')
+_split_regex = re.compile(r'.*f(?:.*?)v.*.*?spl.*?(\d+).*?(\d+).*')
 
 def _do_process_purpose(action):
     """ Does all the 'hard work' in processing the purpose. Returns a single
@@ -55,12 +62,18 @@ def _do_process_purpose(action):
                     else:
                         div = float(z)
                 actions.append((symbol, ex_date, 'D', 1.0, div))
-    if purpose.find('bonus') >= 0:
+    if purpose.find('bon') >= 0:
         y = _bonus_regex.search(purpose)
         if y:
             n, d = float(y.group(1)), float(y.group(2))
             ratio = n / (n+d)
             actions.append((symbol, ex_date, 'B', ratio, 0.0))
+    if purpose.find('spl') >= 0:
+        y = _split_regex.search(purpose)
+        if y:
+            d, n = float(y.group(1)), float(y.group(2))
+            ratio = n / d
+            actions.append((symbol, ex_date, 'S', ratio, 0.0))
     return actions
 
 
@@ -93,7 +106,6 @@ def _process_ca_text(ca_text):
             print ",".join(l), ' has fewer fields than required ', \
                     len(CorpAction._fields)
             continue
-        print l
         corp_actions.append(CorpAction(*l))
     return _process_purpose(sorted(list(set(corp_actions)),
                     key=lambda x:dt.strptime(x.ex_date, '%d-%b-%Y')))
@@ -122,8 +134,10 @@ def get_corp_action_csv(sym_name):
 
 
 if __name__ == '__main__':
-    #for x in get_all_stocks_list(start=500, count=2):
-    #    print get_corp_action_csv(x.symbol)
-    corp_actions =  get_corp_action_csv('infy')
-    for x in corp_actions:
-        print x
+
+    import sys
+
+    for stock in sys.argv[1:]:
+        corp_actions =  get_corp_action_csv(stock)
+        for x in corp_actions:
+            print x
