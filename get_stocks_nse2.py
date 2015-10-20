@@ -114,11 +114,14 @@ def get_bhavcopy(date='01-01-2002'):
                                     int(v), int(d)]
         i = 0
         for line in delivery:
-            if i == 0:
+            if not line.startswith('20'):
                 i += 1
                 continue
             l = line.split(',')
-            sym, d = l[1].strip(), l[3].strip()
+            if (len(l)) == 4:
+                sym, d = l[1].strip(), l[3].strip()
+            elif len(l) == 7:
+                sym, d = l[2].strip(), l[5].strip()
             stocks_dict[sym][-1] = int(d)
             i += 1
         for sym in stocks_dict.keys():
