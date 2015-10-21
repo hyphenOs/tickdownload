@@ -1,6 +1,7 @@
 import sqlite3
 
 import pandas as pd
+import numpy as np
 
 con = sqlite3.connect('.nse_all_data.sqlite')
 
@@ -13,7 +14,7 @@ lscrips = map(lambda x:x, scrips.name)
 
 print pd.version.version
 
-scripinfo_dict = {}
+scripdata_dict = {}
 i = 1
 for scrip in lscrips:
     print scrip, i
@@ -26,10 +27,10 @@ for scrip in lscrips:
     scripdata.reset_index(inplace=True)
     scripdata.set_index(pd.DatetimeIndex(scripdata['date']), inplace=True)
     scripdata.drop('date', axis=1, inplace=True)
-    print scripdata
     i += 1
-    if i == 2:
+    scripdata_dict[scrip] = scripdata
+    if i == 10:
         break
 
-print scripinfo_dict
-print scripdata.columns
+pan = pd.Panel(scripdata_dict)
+print pan
