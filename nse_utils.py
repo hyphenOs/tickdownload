@@ -12,12 +12,12 @@ from collections import namedtuple
 scrip_ohlcvd_info = namedtuple('ScripOHLCVD',
                             ['open', 'high', 'low', 'close', 'volume', 'deliv'])
 scrip_base_info_nse = namedtuple('ScripBaseinfoNSE',
-                                    ['symbol', 'name', 'listing_date'])
+                                    ['symbol', 'name', 'listing_date', 'isin'])
 
 ALL_STOCKS_CSV_URL = 'http://nseindia.com/corporates/datafiles/'\
                         'LDE_EQUITIES_MORE_THAN_5_YEARS.csv'
 
-def get_all_stocks_list(start=None, count=-1):
+def nse_get_all_stocks_list(start=None, count=-1):
     """ Returns a generator object of all stocks as a
         namedtuple(symbol, name, listing_date)"""
 
@@ -46,7 +46,8 @@ def get_all_stocks_list(start=None, count=-1):
                raise StopIteration
             name = line[2].strip('"')
             listing_date = line[3].strip('"')
-            a = scrip_base_info_nse(symbol, name, listing_date)
+            isin = line[1].strip('"')
+            a = scrip_base_info_nse(symbol, name, listing_date, isin)
             i += 1
             yield a
     else:
@@ -79,7 +80,7 @@ def get_name_change_tuples():
 
 if __name__ == '__main__':
     print get_name_change_tuples()
-    for x in get_all_stocks_list(count=2):
+    for x in nse_get_all_stocks_list(count=2):
         print x
 
 

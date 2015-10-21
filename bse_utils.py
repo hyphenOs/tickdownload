@@ -17,7 +17,7 @@ There are others
 
 IP - No idea what they are
 
-We'd be interested in A, B, T and D, DT mainly.
+We'd be interested in A, B, D, T mainly
 
 """
 
@@ -29,13 +29,14 @@ from collections import namedtuple
 
 # The following two are global because we want to quickly update them if req
 # but we don't want them to be imported. This is very internal
-_GROUPS_INTERESTED = ('A', 'B', 'T', 'D', 'DT')
+_GROUPS_INTERESTED = ('A', 'B', 'T', 'D')
 _STOCKS_LIST_URL = 'http://www.bseindia.com/corporates/List_Scrips.aspx?'\
                     'expandable=1'
 
-scrip_base_info_bse = namedtuple('ScripBaseinfoBSE', ['bseid', 'symbol', 'name'])
+scrip_base_info_bse = namedtuple('ScripBaseinfoBSE',
+                        ['bseid', 'symbol', 'name', 'group', 'isin'])
 
-def get_all_stocks_data(start=None, count=-1):
+def bse_get_all_stocks_list(start=None, count=-1):
     """ Downloads the List of All Active stocks in BSE in groups A,B,T,D,DT
         If optional start and count are given, only downloads a subset from
         start -> start + count
@@ -127,13 +128,16 @@ def get_all_stocks_data(start=None, count=-1):
         if count > 0 and i >= start+count:
             raise StopIteration
 
+        print line
         bse_id = line[0].strip()
         symbol = line[1].strip().upper()
         name = line[2].strip()
+        group = line[4].strip()
+        isin = line[6].strip()
         i += 1
-        yield scrip_base_info_bse(bse_id, symbol, name)
+        yield scrip_base_info_bse(bse_id, symbol, name, group, isin)
 
 
 if __name__ == '__main__':
-    for x in get_all_stocks_data(count=-1):
+    for x in bse_get_all_stocks_list(count=-1):
         print x

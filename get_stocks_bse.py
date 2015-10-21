@@ -8,13 +8,12 @@ import requests
 import BeautifulSoup as bs4
 from datetime import datetime as dt
 
-from bse_utils import get_all_stocks_data
+from bse_utils import bse_get_all_stocks_list
 
 GLOBAL_START_DATE = '01/01/2002'
 DATE_FORMAT = '%d/%m/%Y'
 
 def get_data_for_security(script_code, sdate, edate=None):
-    print 'xxx'
     sdate = dt.strptime(sdate, '%d/%m/%Y')
     edate = dt.strptime(edate, '%d/%m/%Y') if edate is not None else dt.today()
     _do_get_data_for_security(script_code, sdate, edate)
@@ -91,5 +90,5 @@ def _do_get_data_for_security(script_code, sdate, edate):
 if  __name__ == '__main__':
 
     get_data_for_security('531715', GLOBAL_START_DATE)
-    #for x in get_all_stocks_data(100,1):
+    #for x in bse_get_all_stocks_list(100,1):
         #get_data_for_security(x.bseid, GLOBAL_START_DATE)

@@ -16,7 +16,7 @@ import time
 import Queue
 from collections import namedtuple
 
-from nse_utils import get_all_stocks_list
+from nse_utils import nse_get_all_stocks_list
 
 GLOBAL_START_DATE = dt.strptime('01-01-2002', '%d-%m-%Y')
 
@@ -115,7 +115,7 @@ def get_all_stocks_data(start_index=None, count=-1):
     of data @start_index for @count number of stocks"""
 
     i = 0
-    for scrip in get_all_stocks_list(start_index, count):
+    for scrip in nse_get_all_stocks_list(start_index, count):
         time.sleep(random.randint(1,5))
         get_data_for_security(scrip.symbol, scrip.listing_date)
 

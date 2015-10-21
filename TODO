@@ -3,8 +3,7 @@ NSE
 1. Get Corp Actions Data. 
    - Bonus - DONE
    - Divident - DONE
-   - Split
-2. Re
+   - Split - DONE
 
 BSE
 ---
@@ -23,5 +22,5 @@ Experimentation -
    - Corp Action Tables 
      - Foreign Key  Security ID. 
 
-Storing data in HDF5 and experimentation. Bulk of June should be 
+Storing data in HDF5 and experimentation. Bulk of November should be 
 experimentation
