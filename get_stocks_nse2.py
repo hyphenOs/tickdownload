@@ -39,13 +39,13 @@ import sqlite3
 # scrip_info columns - "name","date","open","high","low","close","vol", "deliv"
 _DEF_SQLIITE_FNAME = '.nse_all_data.sqlite'
 
-_bhav_dload_info_cr_stmt = '''CREATE TABLE IF NOT EXISTS bhav_downloads_info
+_bhav_dload_info_cr_stmt = '''CREATE TABLE IF NOT EXISTS nse_bhav_downloads_info
                             (date FLOAT, success boolean
                             check(success in (0,1)))'''
-_deliv_dload_info_cr_stmt = '''CREATE TABLE IF NOT EXISTS deliv_downloads_info
+_deliv_dload_info_cr_stmt = '''CREATE TABLE IF NOT EXISTS nse_deliv_downloads_info
                             (date FLOAT, success boolean
                             check(success in (0,1)))'''
-_scrip_info_cr_stmt = '''CREATE TABLE IF NOT EXISTS scrip_info
+_scrip_info_cr_stmt = '''CREATE TABLE IF NOT EXISTS nse_hist_data
                     (name VARCHAR(64), date TEXT,
                         open FLOAT, high FLOAT, low FLOAT, close FLOAT,
                         volume INTEGER, delivered INTEGER)'''
@@ -135,11 +135,11 @@ def _update_dload_success(fdate, bhav_ok, deliv_ok, fname=None):
     with sqlite3.connect(fname) as con:
         cursor = con.cursor()
         insert_stmt = 'INSERT INTO %(table)s VALUES (%(date)f, %(success)d);'
-        insert_stmt_final = insert_stmt % {'table':'bhav_downloads_info',
+        insert_stmt_final = insert_stmt % {'table':'nse_bhav_downloads_info',
                                     'date' : fdate, 'success':int(bhav_ok)}
         result = cursor.execute(insert_stmt_final)
         print insert_stmt_final
-        insert_stmt_final = insert_stmt % {'table':'deliv_downloads_info',
+        insert_stmt_final = insert_stmt % {'table':'nse_deliv_downloads_info',
                                     'date' : fdate, 'success':int(bhav_ok)}
         cursor.execute(insert_stmt_final)
         print insert_stmt_final
@@ -153,10 +153,10 @@ def _update_bhavcopy(strdate, stocks_dict, fname=None):
 
         fdate = utils.get_ts_for_datestr(strdate, _date_fmt)
         # just to be safe
-        delete_stmt = '''DELETE FROM scrip_info where date = %(date)f'''
+        delete_stmt = '''DELETE FROM nse_hist_data where date = %(date)f'''
         delete_stmt_final = delete_stmt % { 'date': fdate}
         cur.execute(delete_stmt_final)
-        insert_stmt = '''INSERT INTO scrip_info VALUES("%(sym)s", %(date)f,
+        insert_stmt = '''INSERT INTO nse_hist_data VALUES("%(sym)s", %(date)f,
                         %(o)f, %(h)f, %(l)f, %(c)f, %(v)d, %(d)d);'''
         for key, val in stocks_dict.iteritems():
             insert_stmt_final = insert_stmt % { 'sym' : key, 'date': fdate,
@@ -173,7 +173,7 @@ def _bhavcopy_downloaded(fdate, fname=None):
     fname = fname or _DEF_SQLIITE_FNAME
     with sqlite3.connect(fname) as con:
         cur = con.cursor()
-        select_stmt = '''select count(*) from bhav_downloads_info where
+        select_stmt = '''select count(*) from nse_bhav_downloads_info where
                      date = %(date)f;''' % {'date':fdate}
         cur.execute(select_stmt)
     x = cur.fetchone()
@@ -187,10 +187,10 @@ def _create_tables(fname=None):
             cursor.execute(stmt)
 
 def _apply_name_changes_to_db(syms, fname=None):
-    """Changes security names in scrip_info table so the name of the security
+    """Changes security names in nse_hist_data table so the name of the security
     is always the latest."""
     fname = fname or _DEF_SQLIITE_FNAME
-    update_stmt = '''update scrip_info set name = '{}' where name in ({})'''
+    update_stmt = '''update nse_hist_data set name = '{}' where name in ({})'''
     with sqlite3.connect(fname) as con:
         cur = con.cursor()
         for sym in syms:

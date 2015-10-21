@@ -35,18 +35,16 @@ common_isins = set(nse_isins) & set(bse_isins)
 only_nse_isins = set(nse_isins) - common_isins
 only_bse_isins = set(bse_isins) - common_isins
 
-for i in common_isins:
-    print i
+import sqlite3
 
-print "--------------------------------"
-
-for i in only_nse_isins:
-    print i
-
-print "--------------------------------"
-
-
-for i in only_bse_isins:
-    print i
-
+_all_scrips_info_cr_stmt = '''CREATE TABLE all_scrips_info
+                                (security_isin VARCHAR(16) PRIMARY KEY,
+                                company_name VARCHAR(80),
+                                nse_symbol VARCHAR(20),
+                                nse_start_date FLOAT,
+                                bse_symbol VARCHAR(20),
+                                bse_start_date FLOAT,
+                                bse_id CHAR(6),
+                                bse_group CHAR(2))
+                            '''
 
