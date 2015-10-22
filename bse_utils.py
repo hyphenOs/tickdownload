@@ -89,11 +89,10 @@ def bse_get_all_stocks_list(start=None, count=-1):
 
     print "Posting First Data...", _STOCKS_LIST_URL
     y = requests.post(_STOCKS_LIST_URL, data=form_data, stream=True)
-    if y.ok:
-        html2 = bs4.BeautifulSoup(y.text)
-    else:
-        print y.status_code
+    if not y.ok:
+        raise StopIteration
 
+    html2 = bs4.BeautifulSoup(y.text)
     hidden_elems = html2.findAll(attrs={'type':'hidden'})
 
     form_data = {}
@@ -128,7 +127,6 @@ def bse_get_all_stocks_list(start=None, count=-1):
         if count > 0 and i >= start+count:
             raise StopIteration
 
-        print line
         bse_id = line[0].strip()
         symbol = line[1].strip().upper()
         name = line[2].strip()
