@@ -12,6 +12,8 @@ updates (eg. update data corresponding to a symbol with a new name are easier
 to handle in SQLite than dealing with files).
 """
 
+# BIG FIXME: There are sql statements littered all over the place, sqlalchemy?
+
 import requests
 import sys
 from datetime import datetime as dt
@@ -33,22 +35,23 @@ import utils
 
 import sqlite3
 
-# SQLite database for stocks data. There are following tables
-# bhav_downloads_info - columns "date","success/failure"
-# deliv_downloads_info - columns "date","success/failure"
-# scrip_info columns - "name","date","open","high","low","close","vol", "deliv"
+
 _DEF_SQLIITE_FNAME = '.nse_all_data.sqlite'
+# SQLite database for stocks data. There are following tables
+# nse_bhav_downloads_info - columns "date","success/failure"
+# nse_deliv_downloads_info - columns "date","success/failure"
+# nse_historical_data columns - "name","date","open","high","low","close","vol", "deliv"
 
 _bhav_dload_info_cr_stmt = '''CREATE TABLE IF NOT EXISTS nse_bhav_downloads_info
-                            (date FLOAT, success boolean
-                            check(success in (0,1)))'''
+                            (date FLOAT,
+                            success BOOLEAN check(success in (0,1)))'''
 _deliv_dload_info_cr_stmt = '''CREATE TABLE IF NOT EXISTS nse_deliv_downloads_info
-                            (date FLOAT, success boolean
-                            check(success in (0,1)))'''
+                            (date FLOAT,
+                            success BOOLEAN check(success in (0,1)))'''
 _scrip_info_cr_stmt = '''CREATE TABLE IF NOT EXISTS nse_hist_data
                     (name VARCHAR(64), date TEXT,
-                        open FLOAT, high FLOAT, low FLOAT, close FLOAT,
-                        volume INTEGER, delivered INTEGER)'''
+                    open FLOAT, high FLOAT, low FLOAT, close FLOAT,
+                    volume INTEGER, delivered INTEGER)'''
 
 
 _create_stmts = {   'bhav_dload_info' : _bhav_dload_info_cr_stmt,
@@ -56,7 +59,22 @@ _create_stmts = {   'bhav_dload_info' : _bhav_dload_info_cr_stmt,
                     'scrip_info' : _scrip_info_cr_stmt
                 }
 
+_insert_dload_stmt = 'INSERT INTO %(table)s VALUES (%(date)f, %(success)d);'
+
+_del_for_date_stmt = '''DELETE FROM nse_hist_data where date = %(date)f'''
+
+_nsedata_insert_stmt = '''INSERT INTO nse_hist_data VALUES("%(sym)s", %(date)f,
+                        %(o)f, %(h)f, %(l)f, %(c)f, %(v)d, %(d)d);'''
+
+_update_name_changes_stmt = '''update nse_hist_data set name = '{}' where name in ({})'''
+
 _date_fmt = '%d-%m-%Y'
+
+_bhav_url_base = 'http://nseindia.com/content/historical/EQUITIES/' \
+                '%(year)s/%(mon)s/cm%(dd)s%(mon)s%(year)sbhav.csv.zip'
+
+_deliv_url_base = 'http://nseindia.com/archives/equities/mto/' \
+                'MTO_%(dd)s%(mm)s%(year)s.DAT'
 
 def get_bhavcopy(date='01-01-2002'):
     """Downloads a bhavcopy for a given date and returns a dictionary of rows
@@ -83,13 +101,11 @@ def get_bhavcopy(date='01-01-2002'):
     if _bhavcopy_downloaded(fdate): ## already downloaded
         return None
 
-    bhav_url = 'http://nseindia.com/content/historical/EQUITIES/' \
-                '%(year)s/%(mon)s/cm%(dd)s%(mon)s%(year)sbhav.csv.zip' % \
-                        ({'year':yr, 'mon':mon, 'dd':dd})
+    global _bhav_url_base
+    global _deliv_url_base
 
-    deliv_url = 'http://nseindia.com/archives/equities/mto/' \
-                'MTO_%(dd)s%(mm)s%(year)s.DAT' % \
-                        ({'year':yr, 'mm':mm, 'dd':dd})
+    bhav_url = _bhav_url_base % ({'year':yr, 'mon':mon, 'dd':dd})
+    deliv_url = _deliv_url_base % ({'year':yr, 'mm':mm, 'dd':dd})
 
     x = requests.get(bhav_url)
 
@@ -134,12 +150,12 @@ def _update_dload_success(fdate, bhav_ok, deliv_ok, fname=None):
     fname = fname or _DEF_SQLIITE_FNAME
     with sqlite3.connect(fname) as con:
         cursor = con.cursor()
-        insert_stmt = 'INSERT INTO %(table)s VALUES (%(date)f, %(success)d);'
-        insert_stmt_final = insert_stmt % {'table':'nse_bhav_downloads_info',
+        global _insert_dload_stmt
+        insert_stmt_final = _insert_dload_stmt % {'table':'nse_bhav_downloads_info',
                                     'date' : fdate, 'success':int(bhav_ok)}
         result = cursor.execute(insert_stmt_final)
         print insert_stmt_final
-        insert_stmt_final = insert_stmt % {'table':'nse_deliv_downloads_info',
+        insert_stmt_final = _insert_dload_stmt % {'table':'nse_deliv_downloads_info',
                                     'date' : fdate, 'success':int(bhav_ok)}
         cursor.execute(insert_stmt_final)
         print insert_stmt_final
@@ -153,13 +169,12 @@ def _update_bhavcopy(strdate, stocks_dict, fname=None):
 
         fdate = utils.get_ts_for_datestr(strdate, _date_fmt)
         # just to be safe
-        delete_stmt = '''DELETE FROM nse_hist_data where date = %(date)f'''
-        delete_stmt_final = delete_stmt % { 'date': fdate}
+        global _del_for_date_stmt
+        delete_stmt_final = _del_for_date_stmt % { 'date': fdate}
         cur.execute(delete_stmt_final)
-        insert_stmt = '''INSERT INTO nse_hist_data VALUES("%(sym)s", %(date)f,
-                        %(o)f, %(h)f, %(l)f, %(c)f, %(v)d, %(d)d);'''
         for key, val in stocks_dict.iteritems():
-            insert_stmt_final = insert_stmt % { 'sym' : key, 'date': fdate,
+            insert_stmt_final = _nsedata_insert_stmt % { 'sym' : key,
+                                                'date': fdate,
                                                 'o' : val.open, 'h': val.high,
                                                 'l' : val.low, 'c': val.close,
                                                 'v' : val.volume, 'd': val.deliv
@@ -190,14 +205,14 @@ def _apply_name_changes_to_db(syms, fname=None):
     """Changes security names in nse_hist_data table so the name of the security
     is always the latest."""
     fname = fname or _DEF_SQLIITE_FNAME
-    update_stmt = '''update nse_hist_data set name = '{}' where name in ({})'''
+    global _update_name_changes_stmt
     with sqlite3.connect(fname) as con:
         cur = con.cursor()
         for sym in syms:
             old = sym[:-1]
             new = sym[-1]
             olds = ','.join(["'%s'" % x for x in old])
-            update_stmt_final = update_stmt.format(new, olds)
+            update_stmt_final = _update_name_changes_stmt.format(new, olds)
             cur.execute(update_stmt_final)
         con.commit()
 
