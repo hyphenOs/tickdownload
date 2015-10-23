@@ -14,7 +14,7 @@ ratio < 1.0 for bonus/split, value in Rs. for div"""
 
 import requests
 
-from nse_utils import get_all_stocks_list
+from nse_utils import nse_get_all_stocks_list
 from collections import namedtuple
 
 from datetime import datetime as dt
