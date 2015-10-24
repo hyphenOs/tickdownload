@@ -13,7 +13,7 @@ get_corp_action_csv('INFY')
 del get_corp_action_csv
 
 # 3. Get a list of symbol name changes
-from nse_utils import get_name_change_tuples
+from nse_utils import nse_get_name_change_tuples
 get_name_change_tuples()
 del get_name_change_tuples
 

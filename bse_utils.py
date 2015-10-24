@@ -33,7 +33,7 @@ _GROUPS_INTERESTED = ('A', 'B', 'T', 'D')
 _STOCKS_LIST_URL = 'http://www.bseindia.com/corporates/List_Scrips.aspx?'\
                     'expandable=1'
 
-scrip_base_info_bse = namedtuple('ScripBaseinfoBSE',
+ScripBaseinfoBSE = namedtuple('ScripBaseinfoBSE',
                         ['bseid', 'symbol', 'name', 'group', 'isin'])
 
 def bse_get_all_stocks_list(start=None, count=-1):
@@ -133,7 +133,7 @@ def bse_get_all_stocks_list(start=None, count=-1):
         group = line[4].strip()
         isin = line[6].strip()
         i += 1
-        yield scrip_base_info_bse(bse_id, symbol, name, group, isin)
+        yield ScripBaseinfoBSE(bse_id, symbol, name, group, isin)
 
 
 if __name__ == '__main__':

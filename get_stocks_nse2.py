@@ -30,7 +30,7 @@ import time
 
 from zipfile import ZipFile
 
-from nse_utils import get_name_change_tuples, scrip_ohlcvd_info
+from nse_utils import get_name_change_tuples, ScripOHLCVD
 import utils
 
 import sqlite3
@@ -141,7 +141,7 @@ def get_bhavcopy(date='01-01-2002'):
             stocks_dict[sym][-1] = int(d)
             i += 1
         for sym in stocks_dict.keys():
-            stocks_dict[sym] = scrip_ohlcvd_info(*stocks_dict[sym])
+            stocks_dict[sym] = ScripOHLCVD(*stocks_dict[sym])
         return stocks_dict
 
 def _update_dload_success(fdate, bhav_ok, deliv_ok, fname=None):
@@ -273,7 +273,7 @@ if __name__ == '__main__':
         cur_date += td(1)
 
     # Apply the name changes to the DB
-    sym_change_tuples = get_name_change_tuples()
+    sym_change_tuples = nse_get_name_change_tuples()
     if len(sym_change_tuples) == 0:
         print "No name change tuples found..."
         sys.exit(-1)
