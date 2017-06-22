@@ -20,6 +20,16 @@ IP - No idea what they are
 We'd be interested in A, B, D, T mainly
 
 """
+import enum
+class BSEGroup(enum.Enum):
+    A = 'A'
+    B = 'B'
+    Z = 'Z'
+    D = 'D'
+    M = 'M'
+    IP = 'IP'
+    DT = 'DT'
+    T = 'T'
 
 import requests
 import bs4

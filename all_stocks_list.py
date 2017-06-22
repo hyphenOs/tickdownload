@@ -58,7 +58,8 @@ _all_scrips_nseonly_ins_stmt = '''INSERT INTO all_scrips_info
 from nse_utils import nse_get_all_stocks_list
 from bse_utils import bse_get_all_stocks_list
 from utils import get_ts_for_datestr
-import time
+
+from sqlalchemy_wrapper import all_scrips_table
 
 def get_nse_stocks_dict():
     nse_stocks_dict = {} # dictionary of nse stocks key = isin
@@ -72,6 +73,34 @@ def get_bse_stocks_dict():
         bse_stocks_dict[bse_stock.isin] = bse_stock
     return bse_stocks_dict
 
+def populate_all_scrips_table():
+    """
+    Populates the all_scrips_info table.
+    """
+    nse_stocks_dict = get_nse_stocks_dict()
+    nse_isins = nse_stocks_dict.keys()
+
+    bse_stocks_dict = get_bse_stocks_dict()
+    bse_isins = bse_stocks_dict.keys()
+
+    common_isins = set(nse_isins) & set(bse_isins)
+    only_bse_isins = set(bse_isins) - common_isins
+    only_nse_isins = set(nse_isins) - common_isins
+
+    for isin in common_isins:
+        nstock = nse_stocks_dict[isin]
+        bstock = bse_stocks_dict[isin]
+        pass
+
+    for isin in bse_only_isins:
+        bstock = bse_stocks_dict[isin]
+        pass
+
+    for isin in nse_only_isins:
+        nstock = nse_stocks_dict[isin]
+        pass
+
+
 import sqlite3
 
 def create_all_stocks_tbl():
@@ -84,16 +113,6 @@ def create_all_stocks_tbl():
 
 if __name__ == '__main__':
     create_all_stocks_tbl()
-
-    nse_stocks_dict = get_nse_stocks_dict()
-    nse_isins = nse_stocks_dict.keys()
-
-    bse_stocks_dict = get_bse_stocks_dict()
-    bse_isins = bse_stocks_dict.keys()
-
-    common_isins = set(nse_isins) & set(bse_isins)
-    only_bse_isins = set(bse_isins) - common_isins
-    only_nse_isins = set(nse_isins) - common_isins
 
     print common_isins & only_bse_isins
     print common_isins & only_nse_isins

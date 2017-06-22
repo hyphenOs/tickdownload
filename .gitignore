@@ -5,4 +5,5 @@ temp*
 **/*zip
 data*
 *pyc
-**/*sqlite
+**/.*sqlite*
+venv

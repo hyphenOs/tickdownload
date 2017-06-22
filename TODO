@@ -1,3 +1,9 @@
+General
+-------
+
+1. Move to SQLAlchemy
+2. Add a proper logging to the code.
+
 NSE
 ---
 1. Get Corp Actions Data.
