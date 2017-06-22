@@ -30,7 +30,7 @@ import time
 
 from zipfile import ZipFile
 
-from nse_utils import get_name_change_tuples, ScripOHLCVD
+from nse_utils import nse_get_name_change_tuples, ScripOHLCVD
 import utils
 
 import sqlite3
@@ -75,6 +75,9 @@ _bhav_url_base = 'http://nseindia.com/content/historical/EQUITIES/' \
 
 _deliv_url_base = 'http://nseindia.com/archives/equities/mto/' \
                 'MTO_%(dd)s%(mm)s%(year)s.DAT'
+
+# Warn user if number of days data is greater than this
+_WARN_DAYS = 100
 
 def get_bhavcopy(date='01-01-2002'):
     """Downloads a bhavcopy for a given date and returns a dictionary of rows
@@ -222,7 +225,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     # --full option
-    parser.add_argument("--full",
+    parser.add_argument("--full-to",
                         help="download full data from 1 Jan 2002",
                         action="store_true")
 
@@ -238,6 +241,13 @@ if __name__ == '__main__':
                                 "Default is Today.",
                         dest='todate',
                         default="today")
+
+    # --yes option
+    parser.add_argument("--yes",
+                        help="Answer yes to all questions.",
+                        dest="sure",
+                        action="store_true")
+
     args = parser.parse_args()
     try:
         _ = dt.strptime(args.fromdate, _date_fmt)
@@ -255,11 +265,27 @@ if __name__ == '__main__':
         print parser.format_usage()
         sys.exit(-1)
 
+    num_days = to_date - from_date
+
+    if num_days.days > _WARN_DAYS:
+        if args.sure:
+            sure = True
+        else:
+            sure = raw_input("Tatal number of days for download is %1d. "
+                             "Are you Sure?[y|N] " % num_days.days)
+            if sure.lower() in ("y", "ye", "yes"):
+                sure = True
+            else:
+                sure = False
+    else:
+        sure = True
+
+    if not sure:
+        sys.exit(0)
+
     _create_tables()
 
-    tdelta = to_date - from_date
-    if tdelta.days > 50:
-        "Downloading data for {0} days".format(tdelta.days)
+    "Downloading data for {0} days".format(num_days.days)
 
     cur_date = from_date
     while cur_date <= to_date:

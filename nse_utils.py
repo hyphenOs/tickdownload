@@ -80,8 +80,6 @@ def nse_get_name_change_tuples():
     return name_tuples
 
 if __name__ == '__main__':
-    print nse_get_name_change_tuples()
-    for x in nse_get_all_stocks_list(count=2):
-        print x
-
-
+    nse_get_name_change_tuples()
+    #for x in nse_get_all_stocks_list(count=-1):
+        #print x

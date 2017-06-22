@@ -1,26 +1,31 @@
 NSE
 ---
-1. Get Corp Actions Data. 
+1. Get Corp Actions Data.
    - Bonus - DONE
    - Divident - DONE
    - Split - DONE
 
+2. Get new list of indices
+
 BSE
 ---
+
+FIXME: bse_utils.bse_get_all_stocks_list.
+
 1. Programmatically generate list of all securities - DONE
 2. Get Corp Actions Data
    - Bonus
    - Divident
-   - Split 
+   - Split
    (This data is horrible. We'd just try our best)
 
 
-Experimentation - 
-1. Create a Relational Database of Stocks 
+Experimentation -
+1. Create a Relational Database of Stocks
    - Stocks Table
      - Security ID, Security Name, Start Date, BSE Symbol, NSE Symbol, BSE ID
-   - Corp Action Tables 
-     - Foreign Key  Security ID. 
+   - Corp Action Tables
+     - Foreign Key  Security ID.
 
-Storing data in HDF5 and experimentation. Bulk of November should be 
-experimentation
+Storing data in HDF5 and experimentation. We should start 'experimentation'
+real soon.

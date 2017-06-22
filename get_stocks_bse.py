@@ -5,7 +5,7 @@
 # for a BSE scrip
 
 import requests
-import BeautifulSoup as bs4
+import bs4
 from datetime import datetime as dt
 
 from bse_utils import bse_get_all_stocks_list
@@ -28,13 +28,13 @@ def _do_get_data_for_security(script_code, sdate, edate):
     print "Getting...", url
     x = requests.get(url)
 
-    html = bs4.BeautifulSoup(x.text)
+    html = bs4.BeautifulSoup(x.text, "lxml")
 
     hidden_elems = html.findAll(attrs={'type':'hidden'})
 
     form_data = {}
     for el in hidden_elems:
-        m = el.attrMap
+        m = el.attrs
         if m.has_key('value'):
             form_data[m['name']] = m['value']
 
@@ -89,6 +89,6 @@ def _do_get_data_for_security(script_code, sdate, edate):
 
 if  __name__ == '__main__':
 
-    get_data_for_security('531715', GLOBAL_START_DATE)
+    print get_data_for_security('500002', GLOBAL_START_DATE)
     #for x in bse_get_all_stocks_list(100,1):
         #get_data_for_security(x.bseid, GLOBAL_START_DATE)

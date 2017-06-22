@@ -20,11 +20,11 @@ VF_DATE = '1-1-1995'
 VF_DATE_DT = dt.strptime(VF_DATE, DATE_FORMAT)
 
 _INDICES_DICT = {
-                    'NIFTY' : ('CNX Nifty', '03-07-1990'),
-                    'JUNIOR' : ('CNX NIFTY JUNIOR', '04-10-1997'),
-                    'CNX100' : ('CNX 100', '01-01-2003'),
-                    'CNX200' : ('CNX 200', '01-01-2004'),
-                    'CNX500' : ('CNX 500', '07-06-1999'),
+                    'NIFTY' : ('Nifty 50', '03-07-1990'),
+                    'JUNIOR' : ('Nifty Next 50', '04-10-1997'),
+                    'CNX100' : ('Nifty 100', '01-01-2003'),
+                    'CNX200' : ('Nifty 200', '01-01-2004'),
+                    'CNX500' : ('Nifty 500', '07-06-1999'),
                     'MIDCAP' : ('CNX MIDCAP', '01-01-2001'),
                     'SMALLCAP' : ('CNX SMALLCAP', '01-01-2004'),
                     'LIX15' : ('LIX 15', '01-01-2009'),
@@ -100,7 +100,7 @@ def _do_get_index(idx, start_dt, end_dt):
         'historicalindices.jsp?indexType=%(idxstr)s&fromDate=%(from)s&toDate='\
         '%(to)s' % params
     response = requests.get(u)
-    soup = bs4.BeautifulSoup(response.text)
+    soup = bs4.BeautifulSoup(response.text, "lxml")
     tbl = soup.find('table')
     if not tbl:
         return None
@@ -113,8 +113,9 @@ def _do_get_index(idx, start_dt, end_dt):
         if i <= 2:
             continue
         elif i == len(rows)-1:
-            anchor = row.find('a')
-            csv_link = anchor['href']
+            pass # previously this used to give href, now we ignore this
+            # anchor = row.find('a')
+            # csv_link = anchor['href']
         else:
             vals.append(map(lambda x: x.strip(),
                             filter(lambda x: x, row.text.split('\n'))))
@@ -138,7 +139,7 @@ def get_indices(indices):
             continue
         for row in idx_data:
             print row
-        #print idx_data
+        print idx_data
 
 if __name__ == '__main__':
     if len(sys.argv) > 1:

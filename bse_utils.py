@@ -22,7 +22,7 @@ We'd be interested in A, B, D, T mainly
 """
 
 import requests
-import BeautifulSoup as bs4
+import bs4
 import sys
 
 from collections import namedtuple
@@ -56,14 +56,14 @@ def bse_get_all_stocks_list(start=None, count=-1):
     if not x.ok:
         raise StopIteration # FIXME : raise correct exception
 
-    html = bs4.BeautifulSoup(x.text)
+    html = bs4.BeautifulSoup(x.text, "lxml")
 
     hidden_elems = html.findAll(attrs={'type':'hidden'})
 
     form_data = {}
     for el in hidden_elems:
-        m = el.attrMap
-        if m.has_key('value'):
+        m = el.attrs
+        if m and m.has_key('value'):
             form_data[m['name']] = m['value']
 
     other_data = {
@@ -92,13 +92,13 @@ def bse_get_all_stocks_list(start=None, count=-1):
     if not y.ok:
         raise StopIteration
 
-    html2 = bs4.BeautifulSoup(y.text)
+    html2 = bs4.BeautifulSoup(y.text, "lxml")
     hidden_elems = html2.findAll(attrs={'type':'hidden'})
 
     form_data = {}
     for el in hidden_elems:
-        m = el.attrMap
-        if m.has_key('value'):
+        m = el.attrs
+        if m and m.has_key('value'):
             form_data[m['name']] = m['value']
 
     form_data.update(other_data)

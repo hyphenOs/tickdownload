@@ -12,12 +12,13 @@ try harder as much as we can. eg.
 """
 
 import requests
-import BeautifulSoup as bs4
+import bs4
+
 url = 'http://www.bseindia.com/corporates/corporate_act.aspx'
 
 r = requests.get(url)
 
-html = bs4.BeautifulSoup(r.text)
+html = bs4.BeautifulSoup(r.text, "lxml")
 hidden_elems = html.findAll(attrs={'type':'hidden'})
 form_data = {}
 for el in hidden_elems:
@@ -64,7 +65,7 @@ if not y.ok:
     print y.text
     exit(1)
 
-html = bs4.BeautifulSoup(y.text)
+html = bs4.BeautifulSoup(y.text, "lxml")
 hidden_elems = html.findAll(attrs={'type':'hidden'})
 form_data2 = {}
 for el in hidden_elems:

@@ -2,9 +2,14 @@
 # Refer to LICENSE file and README file for licensing information.
 #
 """
+*** DEPRECATED ***
+
 Download All stocks data from the NSE website. Here we make use of a stocks
 CSV file - which has 'symbol and start date. We start from that date
 (or 01-01-2002), whichever is later and download data up to today.
+
+This method is highly unreliable and hence we are preferring the other method
+where we download bhavcopy and apply symbol changes.
 """
 
 import requests

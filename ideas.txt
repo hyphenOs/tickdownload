@@ -4,7 +4,36 @@ What information about a stock "could be useful"
 - Comparison of stock with broad based market index (CNX 500 and NIFTY say)
 - If stock is part of any indices - it's performance with respect to those indices
 - Ownership of stock by mutual fund (good to have would be an indication of up or down)
-- Liquidity (3 month average volume as a percentile) 
+- Liquidity (3 month average volume as a percentile)
 - Chart (of course) going back max up to 10 years.
 - Dividends/splits etc (on chart)
 - Returns based "score" - (percentile score) compared to all returns. for 1m/1w/3m/1y/ytd
+
+
+First let's just write about the workflow -
+
+One time activities
+-------------------
+1. Download All Data
+
+What the data should look like?
+
+1. equities
+
+equities - information -
+
+Should have following information -
+
+Company Name,
+Symbol,
+NSE Traded,
+BSE Traded,
+
+2. equity_prices
+
+Download Bhavcopy for each day - NSE
+
+
+1. Everyday, at some time - we download that days data (say at 6.30pm)
+
+
