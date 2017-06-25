@@ -2,6 +2,8 @@
 A wrapper script that hides all the details behind SQLAlchemy Core.
 """
 
+import datetime
+
 from sqlalchemy import Table, Column
 from sqlalchemy import Integer, String, Float, Date, Boolean, Enum
 from sqlalchemy import MetaData
@@ -33,12 +35,15 @@ def all_scrips_table():
             Column('security_isin', String(16), primary_key=True),
             Column('company_name', String(80)),
             Column('nse_traded', Boolean, default=False),
-            Column('nse_start_date', Date),
+            Column('nse_start_date', Date,
+                        default=datetime.date(year=2001, day=1, month=1)),
             Column('nse_symbol', String(20)),
             Column('nse_suspended', Boolean, default=False),
             Column('bse_traded', Boolean, default=False),
-            Column('bse_start_date', Date),
+            Column('bse_start_date', Date,
+                        default=datetime.date(year=2001, day=1, month=1)),
             Column('bse_id', String(6)),
+            Column('bse_symbol', String(20)),
             Column('bse_group', Enum(BSEGroup))
             )
 

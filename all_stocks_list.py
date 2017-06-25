@@ -19,47 +19,14 @@ bse_group : 'BSE Group'
 
 Periodically we run this to update the table.
 """
-
-_DEF_SQLITE_FNAME = '.all_stocks_data.sqlite3'
-_all_scrips_info_cr_stmt = '''CREATE TABLE IF NOT EXISTS all_scrips_info
-                            (security_isin VARCHAR(16) PRIMARY KEY,
-                            company_name VARCHAR(80),
-                            nse_present BOOLEAN check(nse_present in (0,1)),
-                            nse_symbol VARCHAR(20),
-                            nse_start_date FLOAT,
-                            bse_present BOOLEAN check(nse_present in (0,1)),
-                            bse_symbol VARCHAR(20),
-                            bse_start_date FLOAT,
-                            bse_id CHAR(6),
-                            bse_group CHAR(2)); '''
-
-_all_scrips_common_ins_stmt = '''INSERT INTO all_scrips_info values
-                                ("%(isin)s", "%(name)s",
-                                %(npresent)d, "%(nsymbol)s", %(ndate)f,
-                                %(bpresent)d, "%(bsymbol)s", %(bdate)f,
-                                "%(bid)s", "%(bgroup)s");'''
-
-_all_scrips_bseonly_ins_stmt = '''INSERT INTO all_scrips_info
-                                (security_isin, company_name,
-                                nse_present, bse_present,
-                                bse_symbol, bse_id, bse_group) values
-                                ("%(isin)s", "%(name)s",
-                                %(npresent)d, %(bpresent)d,
-                                "%(bsymbol)s", "%(bid)s", "%(bgroup)s");'''
-
-_all_scrips_nseonly_ins_stmt = '''INSERT INTO all_scrips_info
-                                (security_isin, company_name,
-                                nse_present, bse_present,
-                                nse_symbol, nse_start_date) values
-                                ("%(isin)s", "%(name)s",
-                                %(npresent)d, %(bpresent)d,
-                                "%(nsymbol)s", %(ndate)f);'''
-
 from nse_utils import nse_get_all_stocks_list
 from bse_utils import bse_get_all_stocks_list
-from utils import get_ts_for_datestr
+from utils import get_datetime_for_datestr
+from utils import log_debug, log_info
 
 from sqlalchemy_wrapper import all_scrips_table
+
+from datetime import datetime as dt
 
 def get_nse_stocks_dict():
     nse_stocks_dict = {} # dictionary of nse stocks key = isin
@@ -84,78 +51,66 @@ def populate_all_scrips_table():
     bse_isins = bse_stocks_dict.keys()
 
     common_isins = set(nse_isins) & set(bse_isins)
-    only_bse_isins = set(bse_isins) - common_isins
-    only_nse_isins = set(nse_isins) - common_isins
+    bse_only_isins = set(bse_isins) - common_isins
+    nse_only_isins = set(nse_isins) - common_isins
 
+    t = all_scrips_table()
+
+    count = 0
     for isin in common_isins:
         nstock = nse_stocks_dict[isin]
         bstock = bse_stocks_dict[isin]
-        pass
+
+        nstart_datetime = get_datetime_for_datestr(
+                                                datestr=nstock.listing_date,
+                                                fmt='%d-%b-%Y')
+        nstart_date = dt.date(nstart_datetime)
+        ins = t.insert().values(security_isin=nstock.isin,
+                                company_name=nstock.name,
+                                nse_traded=True,
+                                nse_start_date=nstart_date,
+                                nse_symbol=nstock.symbol,
+                                #nse_suspended default is False,
+                                bse_traded=True,
+                                bse_start_date=nstart_date,
+                                bse_id=bstock.bseid,
+                                bse_symbol=bstock.symbol,
+                                bse_group=bstock.group)
+        log_debug(ins.compile().params)
+        count += 1
+    log_info("common securities", count)
 
     for isin in bse_only_isins:
         bstock = bse_stocks_dict[isin]
-        pass
+        ins = t.insert().values(security_isin=bstock.isin,
+                                company_name=bstock.name,
+                                bse_traded=True,
+                                bse_id=bstock.bseid,
+                                bse_symbol=bstock.symbol,
+                                bse_group=bstock.group)
+        log_debug(ins.compile().params)
+        count += 1
+    log_info("bse_only securities", count)
 
     for isin in nse_only_isins:
         nstock = nse_stocks_dict[isin]
-        pass
-
-
-import sqlite3
-
-def create_all_stocks_tbl():
-    global _all_scrips_info_cr_stmt
-
-    with sqlite3.connect(_DEF_SQLITE_FNAME) as con:
-        cur = con.cursor()
-        cur.execute(_all_scrips_info_cr_stmt)
-        con.commit()
+        nstart_datetime = get_datetime_for_datestr(nstock.listing_date,
+                                                '%d-%b-%Y')
+        nstart_date = dt.date(nstart_datetime)
+        ins = t.insert().values(security_isin=nstock.isin,
+                                company_name=nstock.name,
+                                nse_traded=True,
+                                nse_start_date=nstart_date,
+                                nse_symbol=nstock.symbol
+                                #nse_suspended default is False,
+                                )
+        log_debug(ins.compile().params)
+        count += 1
+    log_info("nse_only securities", count)
 
 if __name__ == '__main__':
-    create_all_stocks_tbl()
 
-    print common_isins & only_bse_isins
-    print common_isins & only_nse_isins
+    import sys
 
-    con = sqlite3.connect(_DEF_SQLITE_FNAME)
-    cur = con.cursor()
-
-    for isin in common_isins:
-        nstock = nse_stocks_dict[isin]
-        bstock = bse_stocks_dict[isin]
-        ndate = get_ts_for_datestr(nstock.listing_date,'%d-%b-%Y')
-        insert_stmt_final = _all_scrips_common_ins_stmt % \
-                            { 'isin': nstock.isin, 'name': nstock.name,
-                                'npresent' : 1, 'nsymbol': nstock.symbol,
-                                'ndate': ndate,
-                                'bpresent' : 1, 'bsymbol': bstock.symbol,
-                                'bid': bstock.bseid, 'bgroup': bstock.group,
-                                'bdate': ndate
-                            }
-        print insert_stmt_final
-        cur.execute(insert_stmt_final)
-
-    for isin in only_bse_isins:
-        bstock = bse_stocks_dict[isin]
-        insert_stmt_final = _all_scrips_bseonly_ins_stmt % \
-                            { 'isin': bstock.isin, 'name': bstock.name,
-                                'npresent' : 0, 'bpresent' : 1,
-                                'bsymbol': bstock.symbol, 'bid': bstock.bseid,
-                                'bgroup': bstock.group
-                            }
-        print insert_stmt_final
-        cur.execute(insert_stmt_final)
-
-    for isin in only_nse_isins:
-        nstock = nse_stocks_dict[isin]
-        ndate = get_ts_for_datestr(nstock.listing_date,'%d-%b-%Y')
-        insert_stmt_final = _all_scrips_nseonly_ins_stmt % \
-                            { 'isin': nstock.isin, 'name': nstock.name,
-                                'npresent' : 1, 'bpresent' : 0,
-                                'nsymbol': nstock.symbol, 'ndate': ndate
-                            }
-        print insert_stmt_final
-        cur.execute(insert_stmt_final)
-
-    con.commit()
-    con.close()
+    populate_all_scrips_table()
+    sys.exit(0)
