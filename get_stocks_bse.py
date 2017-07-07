@@ -28,7 +28,7 @@ def _do_get_data_for_security(script_code, sdate, edate):
     print "Getting...", url
     x = requests.get(url)
 
-    html = bs4.BeautifulSoup(x.text, "lxml")
+    html = bs4.BeautifulSoup(x.text, 'html.parser')
 
     hidden_elems = html.findAll(attrs={'type':'hidden'})
 

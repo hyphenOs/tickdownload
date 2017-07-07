@@ -100,7 +100,7 @@ def _do_get_index(idx, start_dt, end_dt):
         'historicalindices.jsp?indexType=%(idxstr)s&fromDate=%(from)s&toDate='\
         '%(to)s' % params
     response = requests.get(u)
-    soup = bs4.BeautifulSoup(response.text, "lxml")
+    soup = bs4.BeautifulSoup(response.text, 'html.parser')
     tbl = soup.find('table')
     if not tbl:
         return None

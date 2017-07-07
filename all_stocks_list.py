@@ -22,7 +22,11 @@ Periodically we run this to update the table.
 from nse_utils import nse_get_all_stocks_list
 from bse_utils import bse_get_all_stocks_list
 from utils import get_datetime_for_datestr
-from utils import log_debug, log_info
+
+from utils import get_logger
+import logging
+
+module_logger = get_logger(__name__, console_level=logging.INFO)
 
 from sqlalchemy_wrapper import all_scrips_table
 
@@ -57,6 +61,7 @@ def populate_all_scrips_table():
     t = all_scrips_table()
 
     count = 0
+    insert_statements = []
     for isin in common_isins:
         nstock = nse_stocks_dict[isin]
         bstock = bse_stocks_dict[isin]
@@ -65,6 +70,7 @@ def populate_all_scrips_table():
                                                 datestr=nstock.listing_date,
                                                 fmt='%d-%b-%Y')
         nstart_date = dt.date(nstart_datetime)
+
         ins = t.insert().values(security_isin=nstock.isin,
                                 company_name=nstock.name,
                                 nse_traded=True,
@@ -76,27 +82,38 @@ def populate_all_scrips_table():
                                 bse_id=bstock.bseid,
                                 bse_symbol=bstock.symbol,
                                 bse_group=bstock.group)
-        log_debug(ins.compile().params)
+        module_logger.debug(ins.compile().params)
+
+        insert_statements.append(ins)
         count += 1
-    log_info("common securities", count)
+
+    common_count = count
+    module_logger.info("common securities count: %d", common_count)
 
     for isin in bse_only_isins:
         bstock = bse_stocks_dict[isin]
+
         ins = t.insert().values(security_isin=bstock.isin,
                                 company_name=bstock.name,
                                 bse_traded=True,
                                 bse_id=bstock.bseid,
                                 bse_symbol=bstock.symbol,
                                 bse_group=bstock.group)
-        log_debug(ins.compile().params)
+        module_logger.debug(ins.compile().params)
+
+        insert_statements.append(ins)
         count += 1
-    log_info("bse_only securities", count)
+
+    bse_only_count = count - common_count
+    module_logger.info("bse_only securities count: %d", bse_only_count)
 
     for isin in nse_only_isins:
         nstock = nse_stocks_dict[isin]
+
         nstart_datetime = get_datetime_for_datestr(nstock.listing_date,
                                                 '%d-%b-%Y')
         nstart_date = dt.date(nstart_datetime)
+
         ins = t.insert().values(security_isin=nstock.isin,
                                 company_name=nstock.name,
                                 nse_traded=True,
@@ -104,13 +121,22 @@ def populate_all_scrips_table():
                                 nse_symbol=nstock.symbol
                                 #nse_suspended default is False,
                                 )
-        log_debug(ins.compile().params)
+        module_logger.debug(ins.compile().params)
+
+        insert_statements.append(ins)
         count += 1
-    log_info("nse_only securities", count)
+
+    nse_only_count = count - bse_only_count - common_count
+    module_logger.info("nse_only securities count: %d", nse_only_count)
+
+    return insert_statements
 
 if __name__ == '__main__':
 
     import sys
 
-    populate_all_scrips_table()
+    insert_statements = populate_all_scrips_table()
+
+    #db_engine = create_db_engine(type='sqlite', path='memory')
+
     sys.exit(0)

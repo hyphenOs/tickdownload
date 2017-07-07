@@ -66,7 +66,7 @@ def bse_get_all_stocks_list(start=None, count=-1):
     if not x.ok:
         raise StopIteration # FIXME : raise correct exception
 
-    html = bs4.BeautifulSoup(x.text, "lxml")
+    html = bs4.BeautifulSoup(x.text, 'html.parser')
 
     hidden_elems = html.findAll(attrs={'type':'hidden'})
 
@@ -102,7 +102,7 @@ def bse_get_all_stocks_list(start=None, count=-1):
     if not y.ok:
         raise StopIteration
 
-    html2 = bs4.BeautifulSoup(y.text, "lxml")
+    html2 = bs4.BeautifulSoup(y.text, 'html.parser')
     hidden_elems = html2.findAll(attrs={'type':'hidden'})
 
     form_data = {}

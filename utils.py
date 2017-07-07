@@ -7,6 +7,9 @@ import time
 from datetime import datetime as dt
 import sys
 
+import logging
+_LOG_FILE = 'equities-data-utils.log'
+
 def get_datetime_for_datestr(datestr='2015-10-04', fmt='%Y-%m-%d'):
     """
     Returns a datetime.datetime object for a given string.
@@ -40,13 +43,29 @@ def get_datestr_from_ts(ts, fmt='%Y-%m-%d'):
     d = dt.utcfromtimestamp(ts)
     return time.strftime(fmt, d.timetuple())
 
-# FIXME: Add proper logging wrapper
-def log_debug(*args):
-    return
-    #print(args)
+def get_logger(name=__name__, default_level=logging.INFO,
+                console_level=logging.WARNING):
+    """
+        Returns a Logger object with a given name adds two handlers -
+        viz. Stream (console) and a File handler.
+    """
+    logger = logging.getLogger(name)
+    logger.setLevel(min(default_level, console_level))
 
-def log_info(*args):
-    print(args)
+    ch = logging.StreamHandler()
+    ch.setLevel(console_level)
+
+    fh = logging.FileHandler(_LOG_FILE)
+    fh.setLevel(default_level)
+
+    logger.addHandler(ch)
+    logger.addHandler(fh)
+
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    fh.setFormatter(formatter)
+    ch.setFormatter(formatter)
+
+    return logger
 
 if __name__ == '__main__':
     if len(sys.argv) < 2 or len(sys.argv) > 3:

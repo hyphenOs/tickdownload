@@ -18,7 +18,7 @@ url = 'http://www.bseindia.com/corporates/corporate_act.aspx'
 
 r = requests.get(url)
 
-html = bs4.BeautifulSoup(r.text, "lxml")
+html = bs4.BeautifulSoup(r.text, 'html.parser')
 hidden_elems = html.findAll(attrs={'type':'hidden'})
 form_data = {}
 for el in hidden_elems:
@@ -65,7 +65,7 @@ if not y.ok:
     print y.text
     exit(1)
 
-html = bs4.BeautifulSoup(y.text, "lxml")
+html = bs4.BeautifulSoup(y.text, 'html.parser')
 hidden_elems = html.findAll(attrs={'type':'hidden'})
 form_data2 = {}
 for el in hidden_elems:
