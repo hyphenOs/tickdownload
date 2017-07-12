@@ -11,6 +11,9 @@ For every corp action, we output data in the following form -
 scrip, ex_date, type(B:bonus,D:dividend,S:split), ratio, value.
 ratio < 1.0 for bonus/split, value in Rs. for div"""
 
+import os
+from utils import get_logger
+module_logger = get_logger(os.path.basename(__file__))
 
 import requests
 
@@ -70,13 +73,17 @@ def _do_process_purpose(action):
         if y:
             n, d = float(y.group(1)), float(y.group(2))
             ratio = n / (n+d)
-            actions.append(CorpAction(symbol, ex_date, 'B', ratio, 0.0))
+            action = CorpAction(symbol, ex_date, 'B', ratio, 0.0)
+            actions.append(action)
+            module_logger.debug("CorpAction: %s" % str(CorpAction))
     if purpose.find('spl') >= 0:
         y = _split_regex.search(purpose)
         if y:
             d, n = float(y.group(1)), float(y.group(2))
             ratio = n / d
-            actions.append(CorpAction(symbol, ex_date, 'S', ratio, 0.0))
+            action = CorpAction(symbol, ex_date, 'S', ratio, 0.0)
+            actions.append(action)
+            module_logger.debug("CorpAction: %s" % str(CorpAction))
     return actions
 
 
@@ -106,8 +113,7 @@ def _process_ca_text(ca_text):
         if l[0].lower() == 'symbol':
             continue
         if len(l) < len(_CorpActionAll._fields):
-            print ",".join(l), ' has fewer fields than required ', \
-                    len(_CorpActionAll._fields)
+            module_logger.info("Not Processed: %s" % l)
             continue
         corp_actions.append(_CorpActionAll(*l))
     return _process_purpose(sorted(list(set(corp_actions)),
@@ -119,16 +125,17 @@ def get_corp_action_csv(sym_name):
     base = 'http://nseindia.com/corporates/datafiles/'
     sym_part = 'CA_%s_LAST_24_MONTHS.csv' % sym_name
     url =  base + sym_part
-    print "Getting...", url
+    module_logger.info("GET: %s" % url)
     r = requests.get(url)
     if r.ok:
         ca_text = r.text
     else:
+        module_logger.error("GET: %s(%d)" % (url, r.status_code))
         return ''
 
     sym_part2 = 'CA_%s_MORE_THAN_24_MONTHS.csv' % sym_name
     url =  base + sym_part2
-    print "Getting...", url
+    module_logger.info("GET: %s" % url)
     r = requests.get(url)
     if r.ok:
         ca_text += r.text

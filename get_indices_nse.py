@@ -3,6 +3,10 @@
 # Refer to LICENSE file and README file for licensing information.
 #
 
+import os
+from utils import get_logger
+module_logger = get_logger(os.path.basename(__file__))
+
 import requests
 import sys
 import bs4
@@ -20,34 +24,34 @@ VF_DATE = '1-1-1995'
 VF_DATE_DT = dt.strptime(VF_DATE, DATE_FORMAT)
 
 _INDICES_DICT = {
-                    'NIFTY' : ('Nifty 50', '03-07-1990'),
-                    'JUNIOR' : ('Nifty Next 50', '04-10-1997'),
-                    'CNX100' : ('Nifty 100', '01-01-2003'),
-                    'CNX200' : ('Nifty 200', '01-01-2004'),
-                    'CNX500' : ('Nifty 500', '07-06-1999'),
-                    'MIDCAP' : ('CNX MIDCAP', '01-01-2001'),
-                    'SMALLCAP' : ('CNX SMALLCAP', '01-01-2004'),
-                    'LIX15' : ('LIX 15', '01-01-2009'),
-                    'LIX15MIDCAP' : ('LIX15 Midcap', '01-01-2009'),
-                    'NIFTY_MIDCAP' : ('NIFTY MIDCAP 50', '01-01-2004'),
-                    'CNXAUTO' : ('CNX AUTO', '01-01-2004'),
-                    'BANKNIFTY' : ('BANK NIFTY', '01-01-2000'),
-                    'CNXENERGY' : ('CNX ENERGY', '01-01-2001'),
-                    'CNXFINANCE' : ('CNX FINANCE', '01-01-2004'),
-                    'CNXFMCG' : ('CNX FMCG', '01-01-1996'),
-                    'CNXIT' : ('CNX IT', '01-01-1996'),
-                    'CNXMEDIA' : ('CNX MEDIA', '01-01-2006'),
-                    'CNXMETAL' : ('CNX METAL', '01-01-2004'),
-                    'CNXPHARMA' : ('CNX PHARMA', '01-01-2001'),
-                    'CNXPSUBANK' : ('CNX PSU BANK', '01-01-2004'),
-                    'CNXINFRA' : ('CNX INFRA', '01-01-2004'),
-                    'CNXREALTY' : ('CNX REALTY', '01-01-2007'),
-                    'CNXCOMMODITY' : ('CNX COMMODITIES', '01-01-2004'),
-                    'CNXCONSUMPTION' : ('CNX CONSUMPTION', '01-01-2006'),
-                    'VIX' : ('INDIA VIX', '01-01-2010'),
+                    'NIFTY' : ('NIFTY 50', '03-07-1990'),
+                    'JUNIOR' : ('NIFTY NEXT 50', '24-12-1996'),
+                    'CNX100' : ('NIFTY 100', '01-12-2005'),
+                    'CNX200' : ('NIFTY 200', '19-07-2011'),
+                    'CNX500' : ('NIFTY 500', '07-06-1999'),
+                    #'MIDCAP' : ('CNX MIDCAP', '01-01-2001'),
+                    #'SMALLCAP' : ('CNX SMALLCAP', '01-01-2004'),
+                    #'LIX15' : ('LIX 15', '01-01-2009'),
+                    #'LIX15MIDCAP' : ('LIX15 Midcap', '01-01-2009'),
+                    #'NIFTY_MIDCAP2' : ('NIFTY MIDCAP 150', '01-01-2004'),
+                    'NIFTY_MIDCAP' : ('NIFTY MIDCAP 50', '25-09-2007'),
+                    #'CNXAUTO' : ('CNX AUTO', '01-01-2004'),
+                    #'BANKNIFTY' : ('BANK NIFTY', '01-01-2000'),
+                    #'CNXENERGY' : ('CNX ENERGY', '01-01-2001'),
+                    #'CNXFINANCE' : ('CNX FINANCE', '01-01-2004'),
+                    #'CNXFMCG' : ('CNX FMCG', '01-01-1996'),
+                    #'CNXIT' : ('CNX IT', '01-01-1996'),
+                    #'CNXMEDIA' : ('CNX MEDIA', '01-01-2006'),
+                    #'CNXMETAL' : ('CNX METAL', '01-01-2004'),
+                    #'CNXPHARMA' : ('CNX PHARMA', '01-01-2001'),
+                    #'CNXPSUBANK' : ('CNX PSU BANK', '01-01-2004'),
+                    #'CNXINFRA' : ('CNX INFRA', '01-01-2004'),
+                    #'CNXREALTY' : ('CNX REALTY', '01-01-2007'),
+                    #'CNXCOMMODITY' : ('CNX COMMODITIES', '01-01-2004'),
+                    #'CNXCONSUMPTION' : ('CNX CONSUMPTION', '01-01-2006'),
+                    #'VIX' : ('INDIA VIX', '01-01-2010'),
 
                 }
-
 def prepare():
     global _BASE_URL
     """Basic preparation for index download. Load a URL and any other setup
@@ -77,7 +81,7 @@ def get_index(idx):
         s_ = s.strftime(DATE_FORMAT)
         r = _do_get_index(idx, s_, e_)
         if r:
-            print len(r)
+            module_logger.debug("Downloaded %d records" % len(r))
             all_data.extend(r)
 
         time.sleep(random.randint(1,5))
@@ -91,7 +95,7 @@ def get_index(idx):
 
 def _do_get_index(idx, start_dt, end_dt):
     prepare()
-    print "getting data for " + idx + " : from : " + start_dt + " to : " + end_dt
+    module_logger.info("getting data for %s : from : %s to : %s" % (idx, start_dt, end_dt))
     params = {'idxstr' : urllib2.quote(_INDICES_DICT[idx][0]),
                 'from' : start_dt,
                 'to'   : end_dt
@@ -130,6 +134,7 @@ def _do_get_index(idx, start_dt, end_dt):
     #    time.sleep(1)
     #    tries += 1
     #print csvr.text
+    print vals
     return vals
 
 def get_indices(indices):

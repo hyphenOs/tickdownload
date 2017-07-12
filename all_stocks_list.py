@@ -23,10 +23,9 @@ from nse_utils import nse_get_all_stocks_list
 from bse_utils import bse_get_all_stocks_list
 from utils import get_datetime_for_datestr
 
+import os
 from utils import get_logger
-import logging
-
-module_logger = get_logger(__name__, console_level=logging.INFO)
+module_logger = get_logger(os.path.basename(__file__))
 
 from sqlalchemy_wrapper import all_scrips_table
 
@@ -136,7 +135,5 @@ if __name__ == '__main__':
     import sys
 
     insert_statements = populate_all_scrips_table()
-
     #db_engine = create_db_engine(type='sqlite', path='memory')
-
     sys.exit(0)

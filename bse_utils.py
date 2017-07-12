@@ -20,6 +20,12 @@ IP - No idea what they are
 We'd be interested in A, B, D, T mainly
 
 """
+import logging
+from utils import get_logger
+import os
+_CON_LOG_LEVEL = logging.DEBUG
+module_logger = get_logger(os.path.basename(__file__), console_level=_CON_LOG_LEVEL)
+
 import enum
 class BSEGroup(enum.Enum):
     A = 'A'
@@ -60,10 +66,11 @@ def bse_get_all_stocks_list(start=None, count=-1):
     except ValueError: # Make sure both start and count can be 'int'ed
         raise
 
-    print "Getting...", _STOCKS_LIST_URL
+    module_logger.info("GET: %s" % _STOCKS_LIST_URL)
     x = requests.get(_STOCKS_LIST_URL)
 
     if not x.ok:
+        module_logger.error("Error(GET): %s", _STOCKS_LIST_URL)
         raise StopIteration # FIXME : raise correct exception
 
     html = bs4.BeautifulSoup(x.text, 'html.parser')
@@ -97,9 +104,11 @@ def bse_get_all_stocks_list(start=None, count=-1):
     form_data.update(other_data)
     form_data.update(buttons_data)
 
-    print "Posting First Data...", _STOCKS_LIST_URL
+    module_logger.info("POST(1): %s" %  _STOCKS_LIST_URL)
+    module_logger.debug("POST(1) Data: %s" % form_data)
     y = requests.post(_STOCKS_LIST_URL, data=form_data, stream=True)
     if not y.ok:
+        module_logger.error("Error(POST(1)): %s" % _STOCKS_LIST_URL)
         raise StopIteration
 
     html2 = bs4.BeautifulSoup(y.text, 'html.parser')
@@ -114,16 +123,18 @@ def bse_get_all_stocks_list(start=None, count=-1):
     form_data.update(other_data)
     form_data.update(more_data_2)
 
-
-    print "Posting Second Data...", _STOCKS_LIST_URL
+    module_logger.info("POST(2): %s" % _STOCKS_LIST_URL)
+    module_logger.debug("POST(2) Data: %s" % form_data)
     y = requests.post(_STOCKS_LIST_URL, data=form_data, stream=True)
     if not y.ok:
+        module_logger.error("Error(POST(2)): %s", _STOCKS_LIST_URL)
         raise StopIteration # FIXME: Raise a correct error
 
     i = 0
     for line in y.text.split("\n"):
         line = line.split(",")
         if len(line) < 9:
+            module_logger.debug("Unparsed: %s" % line)
             continue
         if line[0].lower().strip() == 'security code':
             continue
@@ -143,7 +154,9 @@ def bse_get_all_stocks_list(start=None, count=-1):
         group = line[4].strip()
         isin = line[6].strip()
         i += 1
-        yield ScripBaseinfoBSE(bse_id, symbol, name, group, isin)
+        bse_scrip_info = ScripBaseinfoBSE(bse_id, symbol, name, group, isin)
+        module_logger.debug("ScripInfo: %s" % str(bse_scrip_info))
+        yield bse_scrip_info
 
 
 if __name__ == '__main__':

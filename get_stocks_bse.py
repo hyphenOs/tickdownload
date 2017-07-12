@@ -4,14 +4,17 @@
 # A simple script that tries to download the historical stock data
 # for a BSE scrip
 
+import os
+from utils import get_logger
+module_logger = get_logger(os.path.basename(__file__))
+
 import requests
 import bs4
 from datetime import datetime as dt
 
-from bse_utils import bse_get_all_stocks_list
-
 GLOBAL_START_DATE = '01/01/2002'
 DATE_FORMAT = '%d/%m/%Y'
+DATE_FMT_FNAME = "%Y%m%d"
 
 def get_data_for_security(script_code, sdate, edate=None):
     sdate = dt.strptime(sdate, '%d/%m/%Y')
@@ -25,7 +28,7 @@ def _do_get_data_for_security(script_code, sdate, edate):
     url = 'http://www.bseindia.com/markets/equity/EQReports/'\
             'StockPrcHistori.aspx?expandable=7&flag=0'
 
-    print "Getting...", url
+    module_logger.info("GET: %s" % url)
     x = requests.get(url)
 
     html = bs4.BeautifulSoup(x.text, 'html.parser')
@@ -75,17 +78,22 @@ def _do_get_data_for_security(script_code, sdate, edate):
     form_data.update(other_data)
     form_data.update(dl2_map)
 
+    module_logger.info("POST: %s" % url)
+    module_logger.debug("POST Data: %s" % form_data)
     y = requests.post(url, data=form_data, stream=True)
 
     if y.ok:
-        fname = script_code + '.csv'
+        start_end = "_".join([sdate.replace("/", ""),
+                                edate.replace("/", ""),
+                                ""])
+        fname = start_end + script_code + '.csv'
         with open(fname, 'wb') as handle:
             for block in y.iter_content(1024):
                 if not block:
                     break
                 handle.write(block)
     else:
-        print y.text
+        module_logger.error("Error(POST): %s" % y.text)
 
 if  __name__ == '__main__':
 

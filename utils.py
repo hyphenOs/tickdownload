@@ -9,6 +9,8 @@ import sys
 
 import logging
 _LOG_FILE = 'equities-data-utils.log'
+_CONSOLE_LOG_LEVEL = logging.WARNING
+_DEFAULT_LOG_LEVEL = logging.INFO
 
 def get_datetime_for_datestr(datestr='2015-10-04', fmt='%Y-%m-%d'):
     """
@@ -43,12 +45,16 @@ def get_datestr_from_ts(ts, fmt='%Y-%m-%d'):
     d = dt.utcfromtimestamp(ts)
     return time.strftime(fmt, d.timetuple())
 
-def get_logger(name=__name__, default_level=logging.INFO,
-                console_level=logging.WARNING):
+def get_logger(name=__name__, default_level=None, console_level=None):
     """
         Returns a Logger object with a given name adds two handlers -
         viz. Stream (console) and a File handler.
     """
+    global _CONSOLE_LOG_LEVEL, _DEFAULT_LOG_LEVEL
+
+    console_level = console_level or _CONSOLE_LOG_LEVEL
+    default_level = default_level or _DEFAULT_LOG_LEVEL
+
     logger = logging.getLogger(name)
     logger.setLevel(min(default_level, console_level))
 

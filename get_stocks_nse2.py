@@ -12,6 +12,10 @@ updates (eg. update data corresponding to a symbol with a new name are easier
 to handle in SQLite than dealing with files).
 """
 
+import os
+from utils import get_logger
+module_logger = get_logger(os.path.basename(__file__))
+
 # BIG FIXME: There are sql statements littered all over the place, sqlalchemy?
 
 import requests
@@ -99,7 +103,6 @@ def get_bhavcopy(date='01-01-2002'):
     mm = d2.strftime('%0m')
     dd = d2.strftime('%0d')
 
-    print yr, mm, dd
     fdate = utils.get_ts_for_datestr(strdate, _date_fmt)
     if _bhavcopy_downloaded(fdate): ## already downloaded
         return None
@@ -110,9 +113,13 @@ def get_bhavcopy(date='01-01-2002'):
     bhav_url = _bhav_url_base % ({'year':yr, 'mon':mon, 'dd':dd})
     deliv_url = _deliv_url_base % ({'year':yr, 'mm':mm, 'dd':dd})
 
+
     x = requests.get(bhav_url)
+    module_lgger.info("GET:Bhavcopy URL: %s" % bhav_url)
 
     y = requests.get(deliv_url)
+    module_lgger.info("GET:Delivery URL: %s" % deliv_url)
+
     stocks_dict = {}
     _update_dload_success(fdate, x.ok, y.ok)
     if x.ok and y.ok:
@@ -145,7 +152,13 @@ def get_bhavcopy(date='01-01-2002'):
             i += 1
         for sym in stocks_dict.keys():
             stocks_dict[sym] = ScripOHLCVD(*stocks_dict[sym])
+            module_logger.debug("ScripInfo(%s): %s" % (sym, str(stocks_dict[sym])))
         return stocks_dict
+    else:
+        if not x.ok:
+            module_logger.error("GET:Bhavcopy URL %s (%d)" % bhav_url, x.status_code)
+        if not y.ok:
+            module_logger.error("GET:Delivery URL %s (%d)" % deliv_url, x.status_code)
 
 def _update_dload_success(fdate, bhav_ok, deliv_ok, fname=None):
     """ Update whether bhavcopy download and delivery data download for given
@@ -157,11 +170,11 @@ def _update_dload_success(fdate, bhav_ok, deliv_ok, fname=None):
         insert_stmt_final = _insert_dload_stmt % {'table':'nse_bhav_downloads_info',
                                     'date' : fdate, 'success':int(bhav_ok)}
         result = cursor.execute(insert_stmt_final)
-        print insert_stmt_final
+        module_logger.debug("Bhavcopy Info Insert: %s" % insert_stmt_final)
         insert_stmt_final = _insert_dload_stmt % {'table':'nse_deliv_downloads_info',
                                     'date' : fdate, 'success':int(bhav_ok)}
         cursor.execute(insert_stmt_final)
-        print insert_stmt_final
+        module_logger.debug("Delivery Info Insert: %s" % insert_stmt_final)
         con.commit()
 
 def _update_bhavcopy(strdate, stocks_dict, fname=None):
@@ -182,7 +195,7 @@ def _update_bhavcopy(strdate, stocks_dict, fname=None):
                                                 'l' : val.low, 'c': val.close,
                                                 'v' : val.volume, 'd': val.deliv
                                                 }
-            print "Executing:", insert_stmt_final
+            module_logger.debug("ScrpData: %s" % insert_stmt_final)
             cur.execute(insert_stmt_final)
 
         con.commit()
@@ -216,6 +229,7 @@ def _apply_name_changes_to_db(syms, fname=None):
             new = sym[-1]
             olds = ','.join(["'%s'" % x for x in old])
             update_stmt_final = _update_name_changes_stmt.format(new, olds)
+            module_logger.debug("Update ScripInfo: %s" % update_stmt_final)
             cur.execute(update_stmt_final)
         con.commit()
 
@@ -301,6 +315,6 @@ if __name__ == '__main__':
     # Apply the name changes to the DB
     sym_change_tuples = nse_get_name_change_tuples()
     if len(sym_change_tuples) == 0:
-        print "No name change tuples found..."
+        module_logger.info("No name change tuples found...")
         sys.exit(-1)
     _apply_name_changes_to_db(sym_change_tuples)

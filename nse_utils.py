@@ -5,6 +5,10 @@
 Common utilities for getting stocks, indices data from NSE.
 """
 
+import os
+from utils import get_logger
+module_logger = get_logger(os.path.basename(__file__))
+
 import requests
 
 from collections import namedtuple
@@ -30,12 +34,13 @@ def nse_get_all_stocks_list(start=None, count=-1):
         raise
 
     r = requests.get(ALL_STOCKS_CSV_URL)
+    module_logger.info("GET: %s" % ALL_STOCKS_CSV_URl)
     if r.ok:
         i = 0
         for line in r.text.split("\n"):
             line = line.split(",")
             if len(line) < 8:
-                print "Line: ", line, " Not in correct format"
+                module_logger.info("Unhandled line: %s" % line)
                 continue
             symbol = line[0].strip('"')
             if symbol.lower().strip() == 'symbol':
@@ -49,9 +54,11 @@ def nse_get_all_stocks_list(start=None, count=-1):
             listing_date = line[3].strip('"')
             isin = line[1].strip('"')
             a = ScripBaseinfoNSE(symbol, name, listing_date, isin)
+            module_logger.debug("ScripBaseInfoNSE: %s" % str(a))
             i += 1
             yield a
     else:
+        module_logger.error("GET: %s(%d)" % (ALL_STOCKS_CSV_URl, x.status_code))
         raise StopIteration
 
 def nse_get_name_change_tuples():
@@ -75,6 +82,7 @@ def nse_get_name_change_tuples():
             name_tuples.append((tup[0] + (cur,)))
         else:
             name_tuples.append((prev, cur,))
+        module_logger.debug("name_change_tuple: %s" % str((prev, cur,)))
         changed_names.append(cur)
 
     return name_tuples

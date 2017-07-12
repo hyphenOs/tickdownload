@@ -31,7 +31,7 @@ def all_scrips_table():
     bse_group: BSE Group for the script.
     """
 
-    return Table('all_scrips_info', _METADATA,
+    all_scrips_tbl = Table('all_scrips_info', _METADATA,
             Column('security_isin', String(16), primary_key=True),
             Column('company_name', String(80)),
             Column('nse_traded', Boolean, default=False),
@@ -46,7 +46,7 @@ def all_scrips_table():
             Column('bse_symbol', String(20)),
             Column('bse_group', Enum(BSEGroup))
             )
-
+    return all_scrips_tbl
 
 if __name__ == '__main__':
     print(all_scrips_table())
