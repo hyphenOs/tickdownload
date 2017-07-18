@@ -37,40 +37,10 @@ from zipfile import ZipFile
 from nse_utils import nse_get_name_change_tuples, ScripOHLCVD
 import utils
 
-import sqlite3
-
-
-_DEF_SQLIITE_FNAME = '.nse_all_data.sqlite'
-# SQLite database for stocks data. There are following tables
-# nse_bhav_downloads_info - columns "date","success/failure"
-# nse_deliv_downloads_info - columns "date","success/failure"
-# nse_historical_data columns - "name","date","open","high","low","close","vol", "deliv"
-
-_bhav_dload_info_cr_stmt = '''CREATE TABLE IF NOT EXISTS nse_bhav_downloads_info
-                            (date FLOAT,
-                            success BOOLEAN check(success in (0,1)))'''
-_deliv_dload_info_cr_stmt = '''CREATE TABLE IF NOT EXISTS nse_deliv_downloads_info
-                            (date FLOAT,
-                            success BOOLEAN check(success in (0,1)))'''
-_scrip_info_cr_stmt = '''CREATE TABLE IF NOT EXISTS nse_hist_data
-                    (name VARCHAR(64), date TEXT,
-                    open FLOAT, high FLOAT, low FLOAT, close FLOAT,
-                    volume INTEGER, delivered INTEGER)'''
-
-
-_create_stmts = {   'bhav_dload_info' : _bhav_dload_info_cr_stmt,
-                    'deliv_dload_info' : _deliv_dload_info_cr_stmt,
-                    'scrip_info' : _scrip_info_cr_stmt
-                }
-
-_insert_dload_stmt = 'INSERT INTO %(table)s VALUES (%(date)f, %(success)d);'
-
-_del_for_date_stmt = '''DELETE FROM nse_hist_data where date = %(date)f'''
-
-_nsedata_insert_stmt = '''INSERT INTO nse_hist_data VALUES("%(sym)s", %(date)f,
-                        %(o)f, %(h)f, %(l)f, %(c)f, %(v)d, %(d)d);'''
-
-_update_name_changes_stmt = '''update nse_hist_data set name = '{}' where name in ({})'''
+from sqlalchemy_wrapper import create_nse_bhav_download_info, \
+                                create_nse_deliv_download_info, \
+                                create_nse_equities_hist_data
+from sqlalchemy_wrapper import execute_one, execute_many
 
 _date_fmt = '%d-%m-%Y'
 
@@ -91,10 +61,10 @@ def get_bhavcopy(date='01-01-2002'):
 
     global _date_fmt
     if isinstance(date, str):
-        d2 = dt.strptime(date, _date_fmt)
+        d2 = dt.date(dt.strptime(date, _date_fmt))
         strdate = date
     elif isinstance(date, dt):
-        d2 = date
+        d2 = dt.date(date)
         strdate = dt.strftime(date, _date_fmt)
     else:
         return None
@@ -103,8 +73,7 @@ def get_bhavcopy(date='01-01-2002'):
     mm = d2.strftime('%0m')
     dd = d2.strftime('%0d')
 
-    fdate = utils.get_ts_for_datestr(strdate, _date_fmt)
-    if _bhavcopy_downloaded(fdate): ## already downloaded
+    if _bhavcopy_downloaded(d2): ## already downloaded
         return None
 
     global _bhav_url_base
@@ -113,15 +82,14 @@ def get_bhavcopy(date='01-01-2002'):
     bhav_url = _bhav_url_base % ({'year':yr, 'mon':mon, 'dd':dd})
     deliv_url = _deliv_url_base % ({'year':yr, 'mm':mm, 'dd':dd})
 
-
     x = requests.get(bhav_url)
-    module_lgger.info("GET:Bhavcopy URL: %s" % bhav_url)
+    module_logger.info("GET:Bhavcopy URL: %s" % bhav_url)
 
     y = requests.get(deliv_url)
-    module_lgger.info("GET:Delivery URL: %s" % deliv_url)
+    module_logger.info("GET:Delivery URL: %s" % deliv_url)
 
     stocks_dict = {}
-    _update_dload_success(fdate, x.ok, y.ok)
+    _update_dload_success(d2, x.ok, y.ok)
     if x.ok and y.ok:
         z = ZipFile(bio(x.content))
         for name in z.namelist():
@@ -137,7 +105,7 @@ def get_bhavcopy(date='01-01-2002'):
                 sym, o, h, l, c, v, d = l[0], l[2], l[3], l[4], \
                                                 l[5], l[8], l[8]
                 stocks_dict[sym] = [float(o), float(h), float(l), float(c),
-                                    int(v), int(d)]
+                                    long(v), long(d)]
         i = 0
         for line in delivery:
             if not line.startswith('20'):
@@ -156,82 +124,84 @@ def get_bhavcopy(date='01-01-2002'):
         return stocks_dict
     else:
         if not x.ok:
-            module_logger.error("GET:Bhavcopy URL %s (%d)" % bhav_url, x.status_code)
+            module_logger.error("GET:Bhavcopy URL %s (%d)" % (bhav_url, x.status_code))
         if not y.ok:
-            module_logger.error("GET:Delivery URL %s (%d)" % deliv_url, x.status_code)
+            module_logger.error("GET:Delivery URL %s (%d)" % (deliv_url, x.status_code))
 
 def _update_dload_success(fdate, bhav_ok, deliv_ok, fname=None):
     """ Update whether bhavcopy download and delivery data download for given
     date is successful"""
-    fname = fname or _DEF_SQLIITE_FNAME
-    with sqlite3.connect(fname) as con:
-        cursor = con.cursor()
-        global _insert_dload_stmt
-        insert_stmt_final = _insert_dload_stmt % {'table':'nse_bhav_downloads_info',
-                                    'date' : fdate, 'success':int(bhav_ok)}
-        result = cursor.execute(insert_stmt_final)
-        module_logger.debug("Bhavcopy Info Insert: %s" % insert_stmt_final)
-        insert_stmt_final = _insert_dload_stmt % {'table':'nse_deliv_downloads_info',
-                                    'date' : fdate, 'success':int(bhav_ok)}
-        cursor.execute(insert_stmt_final)
-        module_logger.debug("Delivery Info Insert: %s" % insert_stmt_final)
-        con.commit()
 
-def _update_bhavcopy(strdate, stocks_dict, fname=None):
+    bhav = create_nse_bhav_download_info()
+    deliv = create_nse_deliv_download_info()
+
+    insert_statements = []
+    insert = bhav.insert().values(download_date=fdate,
+                                    success=bhav_ok)
+    module_logger.debug(insert.compile().params)
+    insert_statements.append(insert)
+
+    insert = deliv.insert().values(download_date=fdate,
+                                    success=bhav_ok)
+    module_logger.debug(insert.compile().params)
+    insert_statements.append(insert)
+
+    #FIXME : check
+    execute_many(insert_statements)
+
+def _update_bhavcopy(curdate, stocks_dict, fname=None):
     """update bhavcopy Database date in DD-MM-YYYY format."""
-    fname = fname or _DEF_SQLIITE_FNAME
-    with sqlite3.connect(fname) as con:
-        cur = con.cursor()
 
-        fdate = utils.get_ts_for_datestr(strdate, _date_fmt)
-        # just to be safe
-        global _del_for_date_stmt
-        delete_stmt_final = _del_for_date_stmt % { 'date': fdate}
-        cur.execute(delete_stmt_final)
-        for key, val in stocks_dict.iteritems():
-            insert_stmt_final = _nsedata_insert_stmt % { 'sym' : key,
-                                                'date': fdate,
-                                                'o' : val.open, 'h': val.high,
-                                                'l' : val.low, 'c': val.close,
-                                                'v' : val.volume, 'd': val.deliv
-                                                }
-            module_logger.debug("ScrpData: %s" % insert_stmt_final)
-            cur.execute(insert_stmt_final)
+    nse_eq_hist_data = create_nse_equities_hist_data()
 
-        con.commit()
+    # delete for today's date if there's anything FWIW
+    d = nse_eq_hist_data.delete(nse_eq_hist_data.c.date == curdate)
+    execute_one(d)
+
+    insert_statements = []
+    for k,v in stocks_dict.iteritems():
+        ins = nse_eq_hist_data.insert().values(symbol=k, date=curdate,
+                                                open=v.open, high=v.high,
+                                                low=v.low, close=v.close,
+                                                volume=v.volume,
+                                                delivery=v.deliv)
+        insert_statements.append(ins)
+        module_logger.debug(ins.compile().params)
+
+    execute_many(insert_statements)
 
 def _bhavcopy_downloaded(fdate, fname=None):
-    fname = fname or _DEF_SQLIITE_FNAME
-    with sqlite3.connect(fname) as con:
-        cur = con.cursor()
-        select_stmt = '''select count(*) from nse_bhav_downloads_info where
-                     date = %(date)f;''' % {'date':fdate}
-        cur.execute(select_stmt)
-    x = cur.fetchone()
+    """
+    Returns success/failure for a given date if bhav/delivery data.
+    """
+    bhav = create_nse_bhav_download_info()
+    deliv = create_nse_deliv_download_info()
 
-    return x[0] > 0
+    bhav_select_st = bhav.select().where(bhav.c.download_date == fdate)
 
-def _create_tables(fname=None):
-    fname = fname or _DEF_SQLIITE_FNAME
-    with sqlite3.connect(fname) as cursor:
-        for stmt in _create_stmts.values():
-            cursor.execute(stmt)
+    result = execute_one(bhav_select_st.compile())
+    result = result.fetchone()
+
+    return result and result[1] == True
 
 def _apply_name_changes_to_db(syms, fname=None):
     """Changes security names in nse_hist_data table so the name of the security
     is always the latest."""
-    fname = fname or _DEF_SQLIITE_FNAME
-    global _update_name_changes_stmt
-    with sqlite3.connect(fname) as con:
-        cur = con.cursor()
-        for sym in syms:
-            old = sym[:-1]
-            new = sym[-1]
-            olds = ','.join(["'%s'" % x for x in old])
-            update_stmt_final = _update_name_changes_stmt.format(new, olds)
-            module_logger.debug("Update ScripInfo: %s" % update_stmt_final)
-            cur.execute(update_stmt_final)
-        con.commit()
+
+    hist_data = create_nse_equities_hist_data()
+
+    update_statements = []
+    for sym in syms:
+        old = sym[:-1]
+        new = sym[-1]
+
+        upd = hist_data.update().values(symbol=new).\
+                where(hist_data.c.symbol.in_(old))
+
+        update_statements.append(upd)
+
+    execute_many(update_statements)
+
 
 if __name__ == '__main__':
     # We run the full program
@@ -297,16 +267,13 @@ if __name__ == '__main__':
     if not sure:
         sys.exit(0)
 
-    _create_tables()
-
-    "Downloading data for {0} days".format(num_days.days)
+    module_logger.info("Downloading data for {0} days".format(num_days.days))
 
     cur_date = from_date
     while cur_date <= to_date:
         scrips_dict = get_bhavcopy(cur_date)
-        str_curdate = cur_date.strftime(_date_fmt)
         if scrips_dict is not None:
-            _update_bhavcopy(str_curdate, scrips_dict)
+            _update_bhavcopy(cur_date, scrips_dict)
 
         time.sleep(random.randrange(1,10))
 

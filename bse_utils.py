@@ -20,11 +20,9 @@ IP - No idea what they are
 We'd be interested in A, B, D, T mainly
 
 """
-import logging
 from utils import get_logger
 import os
-_CON_LOG_LEVEL = logging.DEBUG
-module_logger = get_logger(os.path.basename(__file__), console_level=_CON_LOG_LEVEL)
+module_logger = get_logger(os.path.basename(__file__))
 
 import enum
 class BSEGroup(enum.Enum):

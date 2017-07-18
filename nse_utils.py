@@ -34,7 +34,7 @@ def nse_get_all_stocks_list(start=None, count=-1):
         raise
 
     r = requests.get(ALL_STOCKS_CSV_URL)
-    module_logger.info("GET: %s" % ALL_STOCKS_CSV_URl)
+    module_logger.info("GET: %s" % ALL_STOCKS_CSV_URL)
     if r.ok:
         i = 0
         for line in r.text.split("\n"):
