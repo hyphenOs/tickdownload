@@ -9,12 +9,16 @@ from sqlalchemy import Integer, String, Float, Date, Boolean, Enum, BigInteger
 from sqlalchemy import MetaData
 from sqlalchemy import create_engine
 
+from sqlalchemy.sql import select as select_expr_
+
+select_expr = select_expr_
+
 from bse_utils import BSEGroup
 
 _DB_STR = 'sqlite:///nse_hist_data.sqlite3'
 _METADATA  = MetaData(bind=_DB_STR)
 
-def create_all_scrips_table():
+def create_or_get_all_scrips_table():
     """
     Creates All Scrips Info Table.
 
@@ -56,7 +60,7 @@ def create_all_scrips_table():
 
     return all_scrips_tbl
 
-def create_nse_bhav_download_info():
+def create_or_get_nse_bhav_download_info():
     """
     Creates a table indicating whether NSE Bhavcopy data is downloaded.
 
@@ -76,7 +80,7 @@ def create_nse_bhav_download_info():
 
     return nse_bhav_dl_info
 
-def create_nse_deliv_download_info():
+def create_or_get_nse_deliv_download_info():
     """
     Creates a table indicating whether NSE Delivery data is downloaded.
 
@@ -95,7 +99,7 @@ def create_nse_deliv_download_info():
 
     return nse_deliv_dl_info
 
-def create_nse_equities_hist_data():
+def create_or_get_nse_equities_hist_data():
     """
     Creates a table of NSE Equities Historical Data.
 
@@ -110,7 +114,7 @@ def create_nse_equities_hist_data():
     low  : Low price
     close: Close price.
     volume: Total traded volume
-    delivered : Total delivery for the security for the day.
+    delivery : Total delivery for the security for the day.
     """
     table_name = 'nse_equities_hist_data'
     if table_name not in _METADATA.tables:
@@ -129,6 +133,64 @@ def create_nse_equities_hist_data():
         nse_eq_hist_data = _METADATA.tables[table_name]
 
     return nse_eq_hist_data
+
+def create_or_get_nse_indices_hist_data():
+    """
+    Creates table for NSE Indices Historical data.
+
+    Each row is of the form -
+
+    symbol : Index symbol (our internal symbol)
+    date : Date for the values
+    open : open value
+    high : high valu
+    low : low value
+    close : close value.
+
+    We don't need other data like volume/delivery.
+    """
+    table_name = 'nse_indices_hist_data'
+    if table_name not in _METADATA.tables:
+        nse_idx_hist_data = Table('nse_indices_hist_data', _METADATA,
+                            Column('symbol', String(64)),
+                            Column('date', Date),
+                            Column('open', Float),
+                            Column('high', Float),
+                            Column('low', Float),
+                            Column('close', Float),
+                            )
+        nse_idx_hist_data.create(checkfirst=True)
+    else:
+        nse_idx_hist_data = _METADATA.tables[table_name]
+
+    return nse_idx_hist_data
+
+def create_or_get_nse_indices_info():
+    """
+    Creates NSE Indices info table.
+
+    NSE keeps changing Index names, so we define our own names and only change
+    index names as NSE likes it (this affects downloading certain data).
+
+    symbol : Our symbol for the index
+    name : NSE's current name for the index
+    start_date : Date from which historical OHLC data is available.
+    """
+    table_name = 'nse_indices_info'
+    if table_name not in _METADATA.tables:
+        nse_idx_info = Table('nse_indices_info', _METADATA,
+                        Column('symbol', String(64)),
+                        Column('name', String(100)), # We hope ;-)
+                        Column('start_date', Date)
+                        )
+        nse_idx_info.create(chechfirst=True)
+    else:
+        nse_idx_info = _METADATA.tables[table_name]
+
+    return nse_idx_info
+
+def get_engine():
+    return _METADATA.bind
 
 def execute_one(statement, results='all'):
 

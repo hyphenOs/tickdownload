@@ -27,7 +27,7 @@ import os
 from utils import get_logger
 module_logger = get_logger(os.path.basename(__file__))
 
-from sqlalchemy_wrapper import create_all_scrips_table
+from sqlalchemy_wrapper import create_or_get_all_scrips_table
 from sqlalchemy_wrapper import execute_many
 
 from datetime import datetime as dt
@@ -58,7 +58,7 @@ def populate_all_scrips_table():
     bse_only_isins = set(bse_isins) - common_isins
     nse_only_isins = set(nse_isins) - common_isins
 
-    t = create_all_scrips_table()
+    t = create_or_get_all_scrips_table()
 
     count = 0
     insert_statements = []

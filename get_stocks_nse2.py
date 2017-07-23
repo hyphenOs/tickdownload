@@ -37,9 +37,9 @@ from zipfile import ZipFile
 from nse_utils import nse_get_name_change_tuples, ScripOHLCVD
 import utils
 
-from sqlalchemy_wrapper import create_nse_bhav_download_info, \
-                                create_nse_deliv_download_info, \
-                                create_nse_equities_hist_data
+from sqlalchemy_wrapper import create_or_get_nse_bhav_download_info, \
+                                create_or_get_nse_deliv_download_info, \
+                                create_or_get_nse_equities_hist_data
 from sqlalchemy_wrapper import execute_one, execute_many
 
 _date_fmt = '%d-%m-%Y'
@@ -132,8 +132,8 @@ def _update_dload_success(fdate, bhav_ok, deliv_ok, fname=None):
     """ Update whether bhavcopy download and delivery data download for given
     date is successful"""
 
-    bhav = create_nse_bhav_download_info()
-    deliv = create_nse_deliv_download_info()
+    bhav = create_or_get_nse_bhav_download_info()
+    deliv = create_or_get_nse_deliv_download_info()
 
     insert_statements = []
     insert = bhav.insert().values(download_date=fdate,
@@ -152,7 +152,7 @@ def _update_dload_success(fdate, bhav_ok, deliv_ok, fname=None):
 def _update_bhavcopy(curdate, stocks_dict, fname=None):
     """update bhavcopy Database date in DD-MM-YYYY format."""
 
-    nse_eq_hist_data = create_nse_equities_hist_data()
+    nse_eq_hist_data = create_or_get_nse_equities_hist_data()
 
     # delete for today's date if there's anything FWIW
     d = nse_eq_hist_data.delete(nse_eq_hist_data.c.date == curdate)
@@ -174,8 +174,8 @@ def _bhavcopy_downloaded(fdate, fname=None):
     """
     Returns success/failure for a given date if bhav/delivery data.
     """
-    bhav = create_nse_bhav_download_info()
-    deliv = create_nse_deliv_download_info()
+    bhav = create_or_get_nse_bhav_download_info()
+    deliv = create_or_get_nse_deliv_download_info()
 
     bhav_select_st = bhav.select().where(bhav.c.download_date == fdate)
 
@@ -188,7 +188,7 @@ def _apply_name_changes_to_db(syms, fname=None):
     """Changes security names in nse_hist_data table so the name of the security
     is always the latest."""
 
-    hist_data = create_nse_equities_hist_data()
+    hist_data = create_or_get_nse_equities_hist_data()
 
     update_statements = []
     for sym in syms:
