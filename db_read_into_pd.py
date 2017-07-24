@@ -18,7 +18,7 @@ def get_all_scrips_names_in_db():
 
 
     result = execute_one(scrips_select_st)
-    symbols = [row[0] for row in result]
+    symbols = [row[0] for row in result.fetchall()]
 
     return symbols
 
@@ -37,7 +37,6 @@ e = get_engine()
 hist_data = create_or_get_nse_equities_hist_data()
 
 for scrip in lscrips:
-    print scrip, i
     sql_st = select_expr([hist_data.c.date,
                         hist_data.c.open, hist_data.c.high,
                         hist_data.c.low, hist_data.c.close,
@@ -52,10 +51,6 @@ for scrip in lscrips:
     scripdata.reset_index(inplace=True)
     scripdata.set_index(pd.DatetimeIndex(scripdata['date']), inplace=True)
     scripdata.drop('date', axis=1, inplace=True)
-    i += 1
     scripdata_dict[scrip] = scripdata
-    if i == 10:
-        break
 
 pan = pd.Panel(scripdata_dict)
-print pan['CCL']

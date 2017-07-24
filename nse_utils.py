@@ -75,15 +75,18 @@ def nse_get_name_change_tuples():
         x = line.split(',')
         if len(x) < 3:
             continue
-        prev, cur = x[1].strip().upper(), x[2].strip().upper()
-        if prev in changed_names:
-            tup = filter(lambda x: x[len(x)-1] == prev, name_tuples)
-            name_tuples.remove(tup[0])
-            name_tuples.append((tup[0] + (cur,)))
-        else:
-            name_tuples.append((prev, cur,))
-        module_logger.debug("name_change_tuple: %s" % str((prev, cur,)))
-        changed_names.append(cur)
+        prev, cur, chdate = x[1].strip().upper(), x[2].strip().upper(), x[3].strip()
+        if chdate == 'SM_APPLICABLE_FROM':
+            continue
+        name_tuples.append((prev, cur, chdate,))
+        #if prev in changed_names:
+        #    tup = filter(lambda x: x[len(x)-1] == prev, name_tuples)
+        #    name_tuples.remove(tup[0])
+        #    name_tuples.append((tup[0] + (cur,)))
+        #else:
+        #    name_tuples.append((prev, cur,))
+        #module_logger.debug("name_change_tuple: %s" % str((prev, cur,)))
+        #changed_names.append(cur)
 
     return name_tuples
 

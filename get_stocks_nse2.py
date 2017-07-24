@@ -38,9 +38,9 @@ from nse_utils import nse_get_name_change_tuples, ScripOHLCVD
 import utils
 
 from sqlalchemy_wrapper import create_or_get_nse_bhav_deliv_download_info, \
-                                create_or_get_nse_deliv_download_info, \
                                 create_or_get_nse_equities_hist_data
 from sqlalchemy_wrapper import execute_one, execute_many
+from sqlalchemy_wrapper import select_expr, and_expr
 
 _date_fmt = '%d-%m-%Y'
 
@@ -117,6 +117,8 @@ def get_bhavcopy(date='01-01-2002'):
                     i += 1
                     continue
                 l = line.split(',')
+                if l[1] not in ['EQ', 'BE', 'BZ']:
+                    continue
                 sym, o, h, l, c, v, d = l[0], l[2], l[3], l[4], \
                                                 l[5], l[8], l[8]
                 stocks_dict[sym] = [float(o), float(h), float(l), float(c),
@@ -156,14 +158,26 @@ def _update_dload_success(fdate, bhav_ok, deliv_ok, error_code=None):
 
     tbl = create_or_get_nse_bhav_deliv_download_info()
 
-    insert_st = tbl.insert().values(download_date=fdate,
-                                    bhav_success=bhav_ok,
-                                    deliv_success=deliv_ok,
-                                    error_type=error_code)
-    module_logger.debug(insert_st.compile().params)
+    sel_st = select_expr([tbl]).where(tbl.c.download_date == fdate)
+
+    res = execute_one(sel_st)
+    if not res:
+        ins_or_upd_st = tbl.insert().values(download_date=fdate,
+                                        bhav_success=bhav_ok,
+                                        deliv_success=deliv_ok,
+                                        error_type=error_code)
+    else:
+        ins_or_upd_st = tbl.update().where(tbl.c.download_date == fdate).\
+                                        values(download_date=fdate,
+                                            bhav_success=bhav_ok,
+                                            deliv_success=deliv_ok,
+                                            error_type=error_code)
+    module_logger.debug(ins_or_upd_st.compile().params)
 
     #FIXME : check
-    execute_one(insert_st)
+    res.close()
+
+    execute_one(ins_or_upd_st)
 
 def _update_bhavcopy(curdate, stocks_dict, fname=None):
     """update bhavcopy Database date in DD-MM-YYYY format."""
@@ -218,11 +232,15 @@ def _apply_name_changes_to_db(syms, fname=None):
 
     update_statements = []
     for sym in syms:
-        old = sym[:-1]
-        new = sym[-1]
+        old = sym[0]
+        new = sym[1]
+        chdate = sym[2]
+
+        chdt = dt.date(dt.strptime(chdate, '%d-%b-%Y'))
 
         upd = hist_data.update().values(symbol=new).\
-                where(hist_data.c.symbol.in_(old))
+                where(and_expr(hist_data.c.symbol == old,
+                            hist_data.c.date < chdt))
 
         update_statements.append(upd)
 

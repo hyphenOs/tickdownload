@@ -4,14 +4,16 @@ A wrapper script that hides all the details behind SQLAlchemy Core.
 
 import datetime
 
-from sqlalchemy import Table, Column
+from sqlalchemy import Table, Column, UniqueConstraint
 from sqlalchemy import Integer, String, Float, Date, Boolean, Enum, BigInteger
 from sqlalchemy import MetaData
 from sqlalchemy import create_engine
 
 from sqlalchemy.sql import select as select_expr_
-
 select_expr = select_expr_
+
+from sqlalchemy import and_
+and_expr = and_
 
 from bse_utils import BSEGroup
 
@@ -73,7 +75,7 @@ def create_or_get_nse_bhav_deliv_download_info():
     table_name = 'nse_bhav_deliv_download_info'
     if table_name not in _METADATA.tables :
         nse_bhav_deliv_dl_info = Table('nse_bhav_deliv_download_info', _METADATA,
-                    Column('download_date', Date),
+                    Column('download_date', Date, unique=True),
                     Column('bhav_success', Boolean, default=False),
                     Column('deliv_success', Boolean, default=False),
                     Column('error_type', String(16), default="DLOAD_ERR"),
@@ -83,25 +85,6 @@ def create_or_get_nse_bhav_deliv_download_info():
         nse_bhav_deliv_dl_info = _METADATA.tables[table_name]
 
     return nse_bhav_deliv_dl_info
-
-def create_or_get_nse_deliv_download_info():
-    """
-    Creates a table indicating whether NSE Delivery data is downloaded.
-
-    date: date for which data is downloaded
-    success: boolean indicating whether data is downloaded
-    """
-    table_name = 'nse_deliv_download_info'
-    if table_name not in _METADATA.tables:
-        nse_deliv_dl_info = Table('nse_deliv_download_info', _METADATA,
-                    Column('download_date', Date),
-                    Column('success', Boolean, default=False)
-                    )
-        nse_deliv_dl_info.create(checkfirst=True)
-    else:
-        nse_deliv_dl_info = _METADATA.tables[table_name]
-
-    return nse_deliv_dl_info
 
 def create_or_get_nse_equities_hist_data():
     """
@@ -130,7 +113,8 @@ def create_or_get_nse_equities_hist_data():
                             Column('low', Float),
                             Column('close', Float),
                             Column('volume', BigInteger),
-                            Column('delivery', BigInteger)
+                            Column('delivery', BigInteger),
+                            UniqueConstraint('symbol', 'date', name='symbol_date'),
                             )
         nse_eq_hist_data.create(checkfirst=True)
     else:
@@ -162,6 +146,7 @@ def create_or_get_nse_indices_hist_data():
                             Column('high', Float),
                             Column('low', Float),
                             Column('close', Float),
+                            UniqueConstraint('symbol', 'date', name='symbol_date'),
                             )
         nse_idx_hist_data.create(checkfirst=True)
     else:
@@ -218,5 +203,5 @@ def execute_many(statements, results = 'all'):
     return many_results
 
 if __name__ == '__main__':
-    print(all_scrips_table())
+    print(create_or_get_all_scrips_table())
 
