@@ -54,3 +54,23 @@ for scrip in lscrips:
     scripdata_dict[scrip] = scripdata
 
 pan = pd.Panel(scripdata_dict)
+
+import time
+
+# Select a few rows
+then = time.time()
+sels = [pan[pd]['close'][-1] > pan[pd]['close'][-2] for pd in pan]
+pan1 = pan[sels]
+sels2 = [(pan1[n]['close'][-1] >= (pan1[n]['close'][0] * 1.1)) for n in pan1]
+pan2 = pan1[sels2]
+now = time.time()
+
+print now - then
+
+# Distribution of returns - say
+then2 = time.time()
+rets = [ pan[pd]['close'][-1] / pan[pd]['close'][0] for pd in pan]
+now2 = time.time()
+
+
+print now2 - then2
