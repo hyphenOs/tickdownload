@@ -60,25 +60,29 @@ def create_or_get_all_scrips_table():
 
     return all_scrips_tbl
 
-def create_or_get_nse_bhav_download_info():
+def create_or_get_nse_bhav_deliv_download_info():
     """
-    Creates a table indicating whether NSE Bhavcopy data is downloaded.
+    Creates a table indicating whether NSE Bhavcopy/Deliver data is downloaded.
 
     date: date for which data is downloaded
-    success: boolean indicating whether data is downloaded
+    bhav_success: boolean indicating whether data is downloaded for bhavcopy
+    deliv_success: boolean indicating whether data is downloaded for delivery
+    error_type : Number of times error occurred
     """
 
-    table_name = 'nse_bhav_download_info'
+    table_name = 'nse_bhav_deliv_download_info'
     if table_name not in _METADATA.tables :
-        nse_bhav_dl_info = Table('nse_bhav_download_info', _METADATA,
+        nse_bhav_deliv_dl_info = Table('nse_bhav_deliv_download_info', _METADATA,
                     Column('download_date', Date),
-                    Column('success', Boolean, default=False)
+                    Column('bhav_success', Boolean, default=False),
+                    Column('deliv_success', Boolean, default=False),
+                    Column('error_type', String(16), default="DLOAD_ERR"),
                     )
-        nse_bhav_dl_info.create(checkfirst=True)
+        nse_bhav_deliv_dl_info.create(checkfirst=True)
     else:
-        nse_bhav_dl_info = _METADATA.tables[table_name]
+        nse_bhav_deliv_dl_info = _METADATA.tables[table_name]
 
-    return nse_bhav_dl_info
+    return nse_bhav_deliv_dl_info
 
 def create_or_get_nse_deliv_download_info():
     """

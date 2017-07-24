@@ -37,7 +37,7 @@ from zipfile import ZipFile
 from nse_utils import nse_get_name_change_tuples, ScripOHLCVD
 import utils
 
-from sqlalchemy_wrapper import create_or_get_nse_bhav_download_info, \
+from sqlalchemy_wrapper import create_or_get_nse_bhav_deliv_download_info, \
                                 create_or_get_nse_deliv_download_info, \
                                 create_or_get_nse_equities_hist_data
 from sqlalchemy_wrapper import execute_one, execute_many
@@ -82,14 +82,29 @@ def get_bhavcopy(date='01-01-2002'):
     bhav_url = _bhav_url_base % ({'year':yr, 'mon':mon, 'dd':dd})
     deliv_url = _deliv_url_base % ({'year':yr, 'mm':mm, 'dd':dd})
 
-    x = requests.get(bhav_url)
-    module_logger.info("GET:Bhavcopy URL: %s" % bhav_url)
+    try:
+        x = requests.get(bhav_url)
+        module_logger.info("GET:Bhavcopy URL: %s" % bhav_url)
 
-    y = requests.get(deliv_url)
-    module_logger.info("GET:Delivery URL: %s" % deliv_url)
+        y = requests.get(deliv_url)
+        module_logger.info("GET:Delivery URL: %s" % deliv_url)
+    except requests.RequestException as e:
+        module_logger.exception(e)
+        # We don't update bhav_deliv_downloaded here
+        return None
 
     stocks_dict = {}
-    _update_dload_success(d2, x.ok, y.ok)
+
+    # We do all of the following to avoid - network calls
+    error_code = None
+    if x.status_code == 404:
+        error_code = 'NOT_FOUND'
+    else:
+        if not (x.ok and y.ok):
+            error_code = 'DLOAD_ERR'
+
+    _update_dload_success(d2, x.ok, y.ok, error_code)
+
     if x.ok and y.ok:
         z = ZipFile(bio(x.content))
         for name in z.namelist():
@@ -106,6 +121,7 @@ def get_bhavcopy(date='01-01-2002'):
                                                 l[5], l[8], l[8]
                 stocks_dict[sym] = [float(o), float(h), float(l), float(c),
                                     long(v), long(d)]
+
         i = 0
         for line in delivery:
             if not line.startswith('20'):
@@ -118,36 +134,36 @@ def get_bhavcopy(date='01-01-2002'):
                 sym, d = l[2].strip(), l[5].strip()
             stocks_dict[sym][-1] = int(d)
             i += 1
+
         for sym in stocks_dict.keys():
             stocks_dict[sym] = ScripOHLCVD(*stocks_dict[sym])
             module_logger.debug("ScripInfo(%s): %s" % (sym, str(stocks_dict[sym])))
+
         return stocks_dict
     else:
         if not x.ok:
-            module_logger.error("GET:Bhavcopy URL %s (%d)" % (bhav_url, x.status_code))
+            module_logger.error("GET:Bhavcopy URL %s (%d)" % \
+                                        (bhav_url, x.status_code))
         if not y.ok:
-            module_logger.error("GET:Delivery URL %s (%d)" % (deliv_url, x.status_code))
+            module_logger.error("GET:Delivery URL %s (%d)" % \
+                                        (deliv_url, x.status_code))
+        return None
 
-def _update_dload_success(fdate, bhav_ok, deliv_ok, fname=None):
+
+def _update_dload_success(fdate, bhav_ok, deliv_ok, error_code=None):
     """ Update whether bhavcopy download and delivery data download for given
     date is successful"""
 
-    bhav = create_or_get_nse_bhav_download_info()
-    deliv = create_or_get_nse_deliv_download_info()
+    tbl = create_or_get_nse_bhav_deliv_download_info()
 
-    insert_statements = []
-    insert = bhav.insert().values(download_date=fdate,
-                                    success=bhav_ok)
-    module_logger.debug(insert.compile().params)
-    insert_statements.append(insert)
-
-    insert = deliv.insert().values(download_date=fdate,
-                                    success=bhav_ok)
-    module_logger.debug(insert.compile().params)
-    insert_statements.append(insert)
+    insert_st = tbl.insert().values(download_date=fdate,
+                                    bhav_success=bhav_ok,
+                                    deliv_success=deliv_ok,
+                                    error_type=error_code)
+    module_logger.debug(insert_st.compile().params)
 
     #FIXME : check
-    execute_many(insert_statements)
+    execute_one(insert_st)
 
 def _update_bhavcopy(curdate, stocks_dict, fname=None):
     """update bhavcopy Database date in DD-MM-YYYY format."""
@@ -174,15 +190,25 @@ def _bhavcopy_downloaded(fdate, fname=None):
     """
     Returns success/failure for a given date if bhav/delivery data.
     """
-    bhav = create_or_get_nse_bhav_download_info()
-    deliv = create_or_get_nse_deliv_download_info()
+    tbl = create_or_get_nse_bhav_deliv_download_info()
 
-    bhav_select_st = bhav.select().where(bhav.c.download_date == fdate)
+    select_st = tbl.select().where(tbl.c.download_date == fdate)
 
-    result = execute_one(bhav_select_st.compile())
+    result = execute_one(select_st.compile())
     result = result.fetchone()
 
-    return result and result[1] == True
+    if not result:
+        return False
+
+    # For anything older than 7 days from now, if Error is not found,
+    # we ignore this.
+    d = dt.date(dt.today())
+    delta = d - fdate
+    ignore_error = False
+    if (delta.days > 7) and result.error_type == 'NOT_FOUND':
+        ignore_error = True
+
+    return (result[1] and result[2]) or ignore_error
 
 def _apply_name_changes_to_db(syms, fname=None):
     """Changes security names in nse_hist_data table so the name of the security
