@@ -154,30 +154,6 @@ def create_or_get_nse_indices_hist_data():
 
     return nse_idx_hist_data
 
-def create_or_get_nse_indices_info():
-    """
-    Creates NSE Indices info table.
-
-    NSE keeps changing Index names, so we define our own names and only change
-    index names as NSE likes it (this affects downloading certain data).
-
-    symbol : Our symbol for the index
-    name : NSE's current name for the index
-    start_date : Date from which historical OHLC data is available.
-    """
-    table_name = 'nse_indices_info'
-    if table_name not in _METADATA.tables:
-        nse_idx_info = Table('nse_indices_info', _METADATA,
-                        Column('symbol', String(64)),
-                        Column('name', String(100)), # We hope ;-)
-                        Column('start_date', Date)
-                        )
-        nse_idx_info.create(chechfirst=True)
-    else:
-        nse_idx_info = _METADATA.tables[table_name]
-
-    return nse_idx_info
-
 def get_engine():
     return _METADATA.bind
 

@@ -17,6 +17,9 @@ import random
 from datetime import datetime as dt
 from datetime import timedelta as td
 
+from sqlalchemy_wrapper import create_or_get_nse_indices_hist_data
+from sqlalchemy_wrapper import execute_many
+
 MAX_DAYS = 365
 PREF_DAYS = 100
 DATE_FORMAT = '%d-%m-%Y'
@@ -27,7 +30,7 @@ _INDICES_DICT = {
                     'NIFTY' : ('NIFTY 50', '03-07-1990'),
                     'JUNIOR' : ('NIFTY NEXT 50', '24-12-1996'),
                     'CNX100' : ('NIFTY 100', '01-12-2005'),
-                    'CNX200' : ('NIFTY 200', '19-07-2011'),
+                    'CNX200' : ('NIFTY 200', '03-10-2011'),
                     'CNX500' : ('NIFTY 500', '07-06-1999'),
                     #'MIDCAP' : ('CNX MIDCAP', '01-01-2001'),
                     #'SMALLCAP' : ('CNX SMALLCAP', '01-01-2004'),
@@ -61,12 +64,19 @@ def prepare():
             'historical_index_data.htm'
     response = requests.get(base)
 
-def get_index(idx):
-    """Returns an iterator over the rows of the data"""
+def download_and_save_index(idx):
+    """
+    Returns an iterator over the rows of the data
+
+    The way this works is - we download data for 100 days at a time - something
+    that fits in the table and then read that table using BS4. Then collect all
+    such data and return back.
+    """
 
     if idx not in _INDICES_DICT.keys():
-        print "Index %s not found" % idx
-        print "Possible Indices are: %s" % (", ".join(_INDICES_DICT.keys()))
+        module_logger.error("Index %s not found or not supported yet." % idx)
+        module_logger.error("supported Indices are: %s" % \
+                                    (", ".join(_INDICES_DICT.keys())))
         return None
 
     start_dt = _INDICES_DICT[idx][1]
@@ -83,6 +93,9 @@ def get_index(idx):
         if r:
             module_logger.debug("Downloaded %d records" % len(r))
             all_data.extend(r)
+        else:
+            module_logger.info("Unable to download some records for"
+                                "%s (%s-%s)" % (idx, s_, e_))
 
         time.sleep(random.randint(1,5))
         s = e2 + td(days=1)
@@ -90,29 +103,56 @@ def get_index(idx):
         if e2 > e:
             e2 = e
 
-    return all_data
+    tbl = create_or_get_nse_indices_hist_data()
 
+    insert_statements = []
+    for row in all_data:
+        d = dt.date(dt.strptime(row[0].strip(), '%d-%b-%Y'))
+        o = float(row[1])
+        h = float(row[2])
+        l = float(row[3])
+        c = float(row[4])
+
+        insert_st = tbl.insert().values(symbol=idx,
+                                        date=d,
+                                        open=o,
+                                        high=h,
+                                        low=l,
+                                        close=c)
+        insert_statements.append(insert_st)
+
+    execute_many(insert_statements)
+
+    return all_data
 
 def _do_get_index(idx, start_dt, end_dt):
     prepare()
-    module_logger.info("getting data for %s : from : %s to : %s" % (idx, start_dt, end_dt))
+    module_logger.info("getting data for %s : from : %s to : %s" % \
+                        (idx, start_dt, end_dt))
+
     params = {'idxstr' : urllib2.quote(_INDICES_DICT[idx][0]),
                 'from' : start_dt,
                 'to'   : end_dt
              }
-    u = 'http://nseindia.com/products/dynaContent/equities/indices/'\
-        'historicalindices.jsp?indexType=%(idxstr)s&fromDate=%(from)s&toDate='\
-        '%(to)s' % params
-    response = requests.get(u)
-    soup = bs4.BeautifulSoup(response.text, 'html.parser')
-    tbl = soup.find('table')
-    if not tbl:
+    try:
+        u = 'http://nseindia.com/products/dynaContent/equities/indices/'\
+            'historicalindices.jsp?indexType=%(idxstr)s&'\
+            'fromDate=%(from)s&toDate=%(to)s' % params
+        response = requests.get(u)
+        soup = bs4.BeautifulSoup(response.text, 'html.parser')
+        tbl = soup.find('table')
+        if not tbl:
+            return None
+        vals = []
+        rows = tbl.find_all('tr')
+        if len(rows) <= 3: # Probably an error
+            module_logger.debug("fewer rows, possibly an error. %s" % \
+                                rows[-1].text.strip())
+            return None
+    except requests.RequestsException as e:
+        module_logger.exception(e)
         return None
-    vals = []
-    rows = tbl.find_all('tr')
-    if len(rows) <= 3: # Probably an error
-        print rows[-1].text.strip()
-        return None
+
     for i, row in enumerate(rows):
         if i <= 2:
             continue
@@ -126,25 +166,12 @@ def _do_get_index(idx, start_dt, end_dt):
     ## Optionally get the CSV - this often gives 404, we've to find why!
     # The CSV downloading part is unreliable - so we are just downloading
     # 100 entries at a time
-    #csvr = requests.get('http://nseindia.com/'+csv_link)
-    #tries = 0
-    #while csvr.status_code != 200 and tries < 2:
-    #    csvr = requests.get('http://nseindia.com/'+csv_link)
-    #    print "sleeping"
-    #    time.sleep(1)
-    #    tries += 1
-    #print csvr.text
-    print vals
     return vals
 
 def get_indices(indices):
     for idx in indices:
-        idx_data = get_index(idx.upper())
-        if not idx_data:
-            continue
-        for row in idx_data:
-            print row
-        print idx_data
+        module_logger.info("Downloading data for %s." % idx.upper())
+        download_and_save_index(idx.upper())
 
 if __name__ == '__main__':
     if len(sys.argv) > 1:
