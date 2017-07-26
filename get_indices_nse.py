@@ -18,7 +18,7 @@ from datetime import datetime as dt
 from datetime import timedelta as td
 
 from sqlalchemy_wrapper import create_or_get_nse_indices_hist_data
-from sqlalchemy_wrapper import execute_many
+from sqlalchemy_wrapper import execute_many_insert
 
 _WARN_DAYS = 100
 _MAX_DAYS = 365
@@ -126,7 +126,9 @@ def download_and_save_index(idx, start_date=None, end_date=None):
                                         close=c)
         insert_statements.append(insert_st)
 
-    execute_many(insert_statements)
+    results = execute_many_insert(insert_statements)
+    for r in results:
+        r.close()
 
 
 def _do_get_index(idx, start_dt, end_dt):

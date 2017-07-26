@@ -39,7 +39,7 @@ import utils
 
 from sqlalchemy_wrapper import create_or_get_nse_bhav_deliv_download_info, \
                                 create_or_get_nse_equities_hist_data
-from sqlalchemy_wrapper import execute_one, execute_many
+from sqlalchemy_wrapper import execute_one, execute_one_insert, execute_many_insert
 from sqlalchemy_wrapper import select_expr, and_expr
 
 _date_fmt = '%d-%m-%Y'
@@ -133,6 +133,8 @@ def get_bhavcopy(date='01-01-2002'):
             if (len(l)) == 4:
                 sym, d = l[1].strip(), l[3].strip()
             elif len(l) == 7:
+                if l[3] not in ['EQ', 'BE', 'BZ']:
+                    continue
                 sym, d = l[2].strip(), l[5].strip()
             stocks_dict[sym][-1] = int(d)
             i += 1
@@ -176,7 +178,7 @@ def _update_dload_success(fdate, bhav_ok, deliv_ok, error_code=None):
     #FIXME : check
     res.close()
 
-    execute_one(ins_or_upd_st)
+    execute_one_insert(ins_or_upd_st)
 
 def _update_bhavcopy(curdate, stocks_dict, fname=None):
     """update bhavcopy Database date in DD-MM-YYYY format."""
@@ -197,7 +199,9 @@ def _update_bhavcopy(curdate, stocks_dict, fname=None):
         insert_statements.append(ins)
         module_logger.debug(ins.compile().params)
 
-    execute_many(insert_statements)
+    results = execute_many_insert(insert_statements)
+    for r in results:
+        r.close()
 
 def _bhavcopy_downloaded(fdate, fname=None):
     """
@@ -243,7 +247,9 @@ def _apply_name_changes_to_db(syms, fname=None):
 
         update_statements.append(upd)
 
-    execute_many(update_statements)
+    results = execute_many_insert(update_statements)
+    for r in results:
+        r.close()
 
 
 if __name__ == '__main__':

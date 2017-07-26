@@ -8,6 +8,7 @@ from sqlalchemy import Table, Column, UniqueConstraint
 from sqlalchemy import Integer, String, Float, Date, Boolean, Enum, BigInteger
 from sqlalchemy import MetaData
 from sqlalchemy import create_engine
+from sqlalchemy.exc import IntegrityError
 
 from sqlalchemy.sql import select as select_expr_
 select_expr = select_expr_
@@ -157,26 +158,38 @@ def create_or_get_nse_indices_hist_data():
 def get_engine():
     return _METADATA.bind
 
-def execute_one(statement, results='all'):
+def execute_one_insert(statement, ignore_error=True):
+    result = None
+    try:
+        result = _do_execute_one(statement)
+    except IntegrityError:
+        if ignore_error:
+            pass
+        raise
+    return result
+
+def execute_many_insert(statements, ignore_error=True):
+    results = []
+    for statement in statements:
+        try:
+            result = _do_execute_one(statement)
+            results.append(result)
+        except IntegrityError:
+            if ignore_error:
+                continue
+            raise
+    return results
+
+def execute_one(statement):
+    return _do_execute_one(statement)
+
+def _do_execute_one(statement):
 
     engine = _METADATA.bind
 
     result = engine.execute(statement)
 
     return result
-
-def execute_many(statements, results = 'all'):
-
-    engine = _METADATA.bind
-
-    # FIXME : This is fugly for bulk inserts - Let's figure out what's the
-    #         recommended way and then do it
-    many_results = []
-    for statement in statements:
-        result = engine.execute(statement)
-        many_results.append(result)
-
-    return many_results
 
 if __name__ == '__main__':
     print(create_or_get_all_scrips_table())

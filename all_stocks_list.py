@@ -28,7 +28,7 @@ from utils import get_logger
 module_logger = get_logger(os.path.basename(__file__))
 
 from sqlalchemy_wrapper import create_or_get_all_scrips_table
-from sqlalchemy_wrapper import execute_many
+from sqlalchemy_wrapper import execute_many_insert
 
 from datetime import datetime as dt
 
@@ -136,6 +136,8 @@ if __name__ == '__main__':
     import sys
 
     insert_statements = populate_all_scrips_table()
-    results = execute_many(insert_statements)
+    results = execute_many_insert(insert_statements)
+    for r in results:
+        r.close()
 
     sys.exit(0)
