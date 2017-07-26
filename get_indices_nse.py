@@ -20,11 +20,10 @@ from datetime import timedelta as td
 from sqlalchemy_wrapper import create_or_get_nse_indices_hist_data
 from sqlalchemy_wrapper import execute_many
 
-MAX_DAYS = 365
-PREF_DAYS = 100
-DATE_FORMAT = '%d-%m-%Y'
-VF_DATE = '1-1-1995'
-VF_DATE_DT = dt.strptime(VF_DATE, DATE_FORMAT)
+_WARN_DAYS = 100
+_MAX_DAYS = 365
+_PREF_DAYS = 100
+_DATE_FMT = '%d-%m-%Y'
 
 _INDICES_DICT = {
                     'NIFTY' : ('NIFTY 50', '03-07-1990'),
@@ -64,7 +63,7 @@ def prepare():
             'historical_index_data.htm'
     response = requests.get(base)
 
-def download_and_save_index(idx):
+def download_and_save_index(idx, start_date=None, end_date=None):
     """
     Returns an iterator over the rows of the data
 
@@ -79,16 +78,22 @@ def download_and_save_index(idx):
                                     (", ".join(_INDICES_DICT.keys())))
         return None
 
-    start_dt = _INDICES_DICT[idx][1]
-    s = dt.strptime(start_dt, DATE_FORMAT)
-    e = dt.now()
-    e2 = s + td(days=PREF_DAYS)
-    delta = e - s
-    all_data = []
+    start_dt = start_date or _INDICES_DICT[idx][1]
+    s = dt.strptime(start_dt, _DATE_FMT)
 
+    if not end_date:
+        e = dt.now()
+    else:
+        e = dt.strptime(end_date, _DATE_FMT)
+
+    e2 = s + td(days=_PREF_DAYS)
+    if e2 > e:
+        e2 = e
+
+    all_data = []
     while e > s:
-        e_ = e2.strftime(DATE_FORMAT)
-        s_ = s.strftime(DATE_FORMAT)
+        e_ = e2.strftime(_DATE_FMT)
+        s_ = s.strftime(_DATE_FMT)
         r = _do_get_index(idx, s_, e_)
         if r:
             module_logger.debug("Downloaded %d records" % len(r))
@@ -99,7 +104,7 @@ def download_and_save_index(idx):
 
         time.sleep(random.randint(1,5))
         s = e2 + td(days=1)
-        e2 = s + td(days=PREF_DAYS)
+        e2 = s + td(days=_PREF_DAYS)
         if e2 > e:
             e2 = e
 
@@ -123,7 +128,6 @@ def download_and_save_index(idx):
 
     execute_many(insert_statements)
 
-    return all_data
 
 def _do_get_index(idx, start_dt, end_dt):
     prepare()
@@ -168,12 +172,106 @@ def _do_get_index(idx, start_dt, end_dt):
     # 100 entries at a time
     return vals
 
-def get_indices(indices):
+def get_indices(indices, from_date=None, to_date=None):
+    """
+    Downloads all indices givenin the list.
+    """
     for idx in indices:
         module_logger.info("Downloading data for %s." % idx.upper())
-        download_and_save_index(idx.upper())
+        download_and_save_index(idx.upper(), from_date, to_date)
+    return 0
+
+def _format_indices():
+
+    idx_list = ["", "Currently Supported Indices Are:"]
+    for idx, idxval in _INDICES_DICT.iteritems():
+        idx_str = "Index(%s) : %s, From %s" % (idx, idxval[0], idxval[1])
+        idx_list.append(idx_str)
+    idx_list.append("")
+
+    return "\n".join(idx_list)
+
+def main(args):
+    import argparse
+    parser = argparse.ArgumentParser()
+
+    # -l or --list (list all indices)
+    parser.add_argument('--list',
+                        help="List all supported indices.",
+                        dest="list_indices",
+                        action="store_true")
+
+    # --full option
+    parser.add_argument("--full-to",
+                        help="download full data from 1 Jan 2002",
+                        action="store_true")
+
+    # --from option
+    parser.add_argument("--from",
+                        help="From Date in DD-MM-YYYY format. " \
+                                "Default is 01-01-2002",
+                        dest='fromdate',
+                        default="01-01-2002")
+
+    # --to option
+    parser.add_argument("--to",
+                        help="From Date in DD-MM-YYYY format. " \
+                                "Default is Today.",
+                        dest='todate',
+                        default="today")
+
+    # --yes option
+    parser.add_argument("--yes",
+                        help="Answer yes to all questions.",
+                        dest="sure",
+                        action="store_true")
+
+    args, unprocessed = parser.parse_known_args()
+
+    if args.list_indices:
+        print(_format_indices())
+        return 0
+
+    try:
+        from_date = dt.strptime(args.fromdate, _DATE_FMT)
+        if args.todate.lower() == 'today':
+            args.todate = dt.now().strftime(_DATE_FMT)
+        to_date = dt.strptime(args.todate, _DATE_FMT)
+    except ValueError:
+        print parser.format_usage()
+        sys.exit(-1)
+
+    # We are now ready to download data
+    if from_date > to_date:
+        print parser.format_usage()
+        sys.exit(-1)
+
+    num_days = to_date - from_date
+
+    if num_days.days > _WARN_DAYS:
+        if args.sure:
+            sure = True
+        else:
+            sure = raw_input("Tatal number of days for download is %1d. "
+                             "Are you Sure?[y|N] " % num_days.days)
+            if sure.lower() in ("y", "ye", "yes"):
+                sure = True
+            else:
+                sure = False
+    else:
+        sure = True
+
+    if not sure:
+        return 0
+
+    return get_indices(unprocessed, args.fromdate, args.todate)
+
 
 if __name__ == '__main__':
+
+    sys.exit(main(sys.argv[1:]))
+
+
     if len(sys.argv) > 1:
         indices = sys.argv[1:]
     else:

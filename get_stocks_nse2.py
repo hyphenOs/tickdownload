@@ -151,7 +151,6 @@ def get_bhavcopy(date='01-01-2002'):
                                         (deliv_url, x.status_code))
         return None
 
-
 def _update_dload_success(fdate, bhav_ok, deliv_ok, error_code=None):
     """ Update whether bhavcopy download and delivery data download for given
     date is successful"""
@@ -278,17 +277,15 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     try:
-        _ = dt.strptime(args.fromdate, _date_fmt)
+        from_date = dt.strptime(args.fromdate, _date_fmt)
         if args.todate.lower() == 'today':
             args.todate = dt.now().strftime(_date_fmt)
-        _ = dt.strptime(args.todate, _date_fmt)
+        to_date = dt.strptime(args.todate, _date_fmt)
     except ValueError:
         print parser.format_usage()
         sys.exit(-1)
 
     # We are now ready to download data
-    from_date = dt.strptime(args.fromdate, _date_fmt)
-    to_date = dt.strptime(args.todate, _date_fmt)
     if from_date > to_date:
         print parser.format_usage()
         sys.exit(-1)
