@@ -251,8 +251,7 @@ def _apply_name_changes_to_db(syms, fname=None):
     for r in results:
         r.close()
 
-
-if __name__ == '__main__':
+def main(args):
     # We run the full program
     import argparse
     parser = argparse.ArgumentParser()
@@ -289,12 +288,12 @@ if __name__ == '__main__':
         to_date = dt.strptime(args.todate, _date_fmt)
     except ValueError:
         print parser.format_usage()
-        sys.exit(-1)
+        return -1
 
     # We are now ready to download data
     if from_date > to_date:
         print parser.format_usage()
-        sys.exit(-1)
+        return -1
 
     num_days = to_date - from_date
 
@@ -332,3 +331,12 @@ if __name__ == '__main__':
         module_logger.info("No name change tuples found...")
         sys.exit(-1)
     _apply_name_changes_to_db(sym_change_tuples)
+
+    return 0
+
+
+if __name__ == '__main__':
+
+    import sys
+
+    sys.exit(main(sys.argv[1:]))

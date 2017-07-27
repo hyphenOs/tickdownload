@@ -18,6 +18,12 @@ and_expr = and_
 
 from bse_utils import BSEGroup
 
+import enum
+class CorpActionEnum(enum.Enum):
+    D = 'D'
+    B = 'B'
+    S = 'S'
+
 _DB_STR = 'sqlite:///nse_hist_data.sqlite3'
 _METADATA  = MetaData(bind=_DB_STR)
 
@@ -42,7 +48,7 @@ def create_or_get_all_scrips_table():
 
     table_name = 'all_scrips_info'
     if table_name not in _METADATA.tables :
-        all_scrips_tbl = Table('all_scrips_info', _METADATA,
+        all_scrips_tbl = Table(table_name, _METADATA,
                 Column('security_isin', String(16), primary_key=True),
                 Column('company_name', String(80)),
                 Column('nse_traded', Boolean, default=False),
@@ -75,7 +81,7 @@ def create_or_get_nse_bhav_deliv_download_info():
 
     table_name = 'nse_bhav_deliv_download_info'
     if table_name not in _METADATA.tables :
-        nse_bhav_deliv_dl_info = Table('nse_bhav_deliv_download_info', _METADATA,
+        nse_bhav_deliv_dl_info = Table(table_name, _METADATA,
                     Column('download_date', Date, unique=True),
                     Column('bhav_success', Boolean, default=False),
                     Column('deliv_success', Boolean, default=False),
@@ -106,7 +112,7 @@ def create_or_get_nse_equities_hist_data():
     """
     table_name = 'nse_equities_hist_data'
     if table_name not in _METADATA.tables:
-        nse_eq_hist_data = Table('nse_equities_hist_data', _METADATA,
+        nse_eq_hist_data = Table(table_name, _METADATA,
                             Column('symbol', String(64)),
                             Column('date', Date),
                             Column('open', Float),
@@ -140,7 +146,7 @@ def create_or_get_nse_indices_hist_data():
     """
     table_name = 'nse_indices_hist_data'
     if table_name not in _METADATA.tables:
-        nse_idx_hist_data = Table('nse_indices_hist_data', _METADATA,
+        nse_idx_hist_data = Table(table_name, _METADATA,
                             Column('symbol', String(64)),
                             Column('date', Date),
                             Column('open', Float),
@@ -154,6 +160,32 @@ def create_or_get_nse_indices_hist_data():
         nse_idx_hist_data = _METADATA.tables[table_name]
 
     return nse_idx_hist_data
+
+def create_or_get_nse_corp_actions_hist_data():
+    """
+    Creates table for NSE Corporate Actions data.
+
+    symbol : NSE symbol for the stock.
+    ex_date : Ex Date for the Corporate Action
+    action : One of B/S/D (Bonus/Split/Dividend)
+    ratio : Multiplier to be applied to preceeding data.
+    delta : For dividend difference to be applied to stock price.
+    """
+    table_name = 'nse_corp_actions_hist_data'
+    if table_name not in _METADATA.tables:
+        nse_ca_hist_data = Table(table_name, _METADATA,
+                                Column('symbol', String(64)),
+                                Column('ex_date', Date),
+                                Column('action', Enum(CorpActionEnum)),
+                                Column('ratio', Float),
+                                Column('delta', Float),
+                                UniqueConstraint('symbol', 'ex_date', 'action'),
+                                )
+        nse_ca_hist_data.create(checkfirst=True)
+    else:
+        nse_ca_hist_data = _METADATA.tables[table_name]
+
+    return nse_ca_hist_data
 
 def get_engine():
     return _METADATA.bind

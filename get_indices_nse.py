@@ -194,6 +194,7 @@ def _format_indices():
     return "\n".join(idx_list)
 
 def main(args):
+
     import argparse
     parser = argparse.ArgumentParser()
 
@@ -226,6 +227,12 @@ def main(args):
     parser.add_argument("--yes",
                         help="Answer yes to all questions.",
                         dest="sure",
+                        action="store_true")
+
+    # --all option
+    parser.add_argument("--all",
+                        help="Download all indices.",
+                        dest="all_indices",
                         action="store_true")
 
     args, unprocessed = parser.parse_known_args()
@@ -266,6 +273,9 @@ def main(args):
     if not sure:
         return 0
 
+    if args.all_indices:
+        unprocessed = _INDICES_DICT.keys()
+
     return get_indices(unprocessed, args.fromdate, args.todate)
 
 
@@ -273,9 +283,3 @@ if __name__ == '__main__':
 
     sys.exit(main(sys.argv[1:]))
 
-
-    if len(sys.argv) > 1:
-        indices = sys.argv[1:]
-    else:
-        indices = _INDICES_DICT.keys()
-    get_indices(indices)

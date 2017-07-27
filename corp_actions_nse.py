@@ -23,6 +23,8 @@ from collections import namedtuple
 from datetime import datetime as dt
 import re
 
+import time, random
+
 # _CorpActionAll is a named tuple of following type
 #"Symbol","Company","Industry","Series","Face Value(Rs.)","Purpose",
 # "Ex-Date","Record Date","BC Start Date","BC End Date",
@@ -34,6 +36,9 @@ _CorpActionAll = namedtuple('_CorpActionAll', ['sym', 'name', 'industry',
 
 CorpAction = namedtuple('CorpAction', ['sym', 'ex_date', 'action',
                                         'ratio', 'delta'])
+
+from sqlalchemy_wrapper import create_or_get_nse_corp_actions_hist_data
+from sqlalchemy_wrapper import execute_many_insert
 
 # Don't ask me how I got these regex, lots of trial/error
 _div_regex = re.compile(r'(?:.*?)(?P<div>(?:(?:div.*?)(\d+%)|(?:div.*?(rs\.?)?)\s*(\d+\.?\d*)))')
@@ -115,9 +120,11 @@ def _process_ca_text(ca_text):
         if len(l) < len(_CorpActionAll._fields):
             module_logger.info("Not Processed: %s" % l)
             continue
-        corp_actions.append(_CorpActionAll(*l))
+        l[6] = dt.date(dt.strptime(l[6], '%d-%b-%Y'))
+        a = _CorpActionAll(*l)
+        corp_actions.append(a)
     return _process_purpose(sorted(list(set(corp_actions)),
-                    key=lambda x:dt.strptime(x.ex_date, '%d-%b-%Y')))
+                key=lambda x:x.ex_date))
 
 def get_corp_action_csv(sym_name):
     """Get's the corp action CSV for the symbol name."""
@@ -131,6 +138,7 @@ def get_corp_action_csv(sym_name):
         ca_text = r.text
     else:
         module_logger.error("GET: %s(%d)" % (url, r.status_code))
+        print r.text
         return ''
 
     sym_part2 = 'CA_%s_MORE_THAN_24_MONTHS.csv' % sym_name
@@ -142,12 +150,54 @@ def get_corp_action_csv(sym_name):
 
     return _process_ca_text(ca_text)
 
+def main(args):
+
+    import argparse
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument("--all",
+                        help="Download data for all stocks. Usually you'd have "
+                            "to do it only once.",
+                        dest="all_stocks",
+                        action="store_true")
+
+    args, unprocessed = parser.parse_known_args()
+
+    if args.all_stocks:
+        unprocessed = map(lambda x: x.symbol, nse_get_all_stocks_list())
+
+
+    all_corp_actions = []
+    for stock in unprocessed:
+        time.sleep(random.randint(1,5))
+        try:
+            corp_actions = get_corp_action_csv(stock)
+        except Exception as e:
+            module_logger.exception(e)
+            continue
+        all_corp_actions.extend(corp_actions)
+
+    tbl = create_or_get_nse_corp_actions_hist_data()
+
+    all_insert_statements = []
+    for corp_action in all_corp_actions:
+        module_logger.debug("CorpAction :%s" % str(corp_action))
+        insert_st = tbl.insert().values(symbol=corp_action.sym,
+                                        ex_date=corp_action.ex_date,
+                                        action=corp_action.action,
+                                        ratio=corp_action.ratio,
+                                        delta=corp_action.delta)
+        all_insert_statements.append(insert_st)
+        module_logger.debug("insert_st : %s" % insert_st.compile().params)
+
+    results = execute_many_insert(all_insert_statements)
+    for result in results:
+        result.close()
+
+    return 0
 
 if __name__ == '__main__':
 
     import sys
+    sys.exit(main(sys.argv[1:]))
 
-    for stock in sys.argv[1:]:
-        corp_actions =  get_corp_action_csv(stock)
-        for x in corp_actions:
-            print x
