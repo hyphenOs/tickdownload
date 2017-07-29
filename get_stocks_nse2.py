@@ -142,9 +142,13 @@ def get_bhavcopy(date='01-01-2002'):
                 sym, d = l[1].strip(), l[3].strip()
             elif len(l) == 7:
                 if l[3] not in ['EQ', 'BE', 'BZ']:
+                    i += 1
                     continue
                 sym, d = l[2].strip(), l[5].strip()
-            stocks_dict[sym][-1] = int(d)
+            try:
+                stocks_dict[sym][-1] = int(d)
+            except KeyError:
+                module_logger.error("For Symbol: %s Delivery Data found but no Bhavcopy Data" % sym)
             i += 1
 
         for sym in stocks_dict.keys():
