@@ -24,7 +24,9 @@ class CorpActionEnum(enum.Enum):
     B = 'B'
     S = 'S'
 
+# Change the following line if you want to use different DB connections
 _DB_STR = 'sqlite:///nse_hist_data.sqlite3'
+
 _METADATA  = MetaData(bind=_DB_STR)
 
 def create_or_get_all_scrips_table():

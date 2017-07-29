@@ -4,6 +4,11 @@ certifi==2017.4.17
 chardet==3.0.4
 enum34==1.1.6
 idna==2.5
+numpy==1.13.1
+pandas==0.20.3
+python-dateutil==2.6.1
+pytz==2017.2
 requests==2.18.1
+six==1.10.0
 SQLAlchemy==1.1.11
 urllib3==1.21.1
