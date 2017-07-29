@@ -29,6 +29,14 @@ else:
     from io import BytesIO as bio
     izip = zip
 
+_BHAV_HEADERS =   {'Host': 'www.nseindia.com',
+             'User-Agent':'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:54.0) Gecko/20100101 Firefox/54.0',
+             'Accept':'application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5',
+             'Accept-Encoding':'gzip, deflate, br',
+             'Referer':'https://www.nseindia.com/product/content/equities/equities/archives_eq.htm',
+             'Connection': 'keep-alive',
+             'DNT':'1'}
+
 import random
 import time
 
@@ -44,10 +52,10 @@ from sqlalchemy_wrapper import select_expr, and_expr
 
 _date_fmt = '%d-%m-%Y'
 
-_bhav_url_base = 'http://nseindia.com/content/historical/EQUITIES/' \
+_bhav_url_base = 'https://www.nseindia.com/content/historical/EQUITIES/' \
                 '%(year)s/%(mon)s/cm%(dd)s%(mon)s%(year)sbhav.csv.zip'
 
-_deliv_url_base = 'http://nseindia.com/archives/equities/mto/' \
+_deliv_url_base = 'https://www.nseindia.com/archives/equities/mto/' \
                 'MTO_%(dd)s%(mm)s%(year)s.DAT'
 
 # Warn user if number of days data is greater than this
@@ -83,10 +91,10 @@ def get_bhavcopy(date='01-01-2002'):
     deliv_url = _deliv_url_base % ({'year':yr, 'mm':mm, 'dd':dd})
 
     try:
-        x = requests.get(bhav_url)
+        x = requests.get(bhav_url, headers=_BHAV_HEADERS)
         module_logger.info("GET:Bhavcopy URL: %s" % bhav_url)
 
-        y = requests.get(deliv_url)
+        y = requests.get(deliv_url, headers=_BHAV_HEADERS)
         module_logger.info("GET:Delivery URL: %s" % deliv_url)
     except requests.RequestException as e:
         module_logger.exception(e)
