@@ -45,7 +45,7 @@ $VENV_PYTHON get_stocks_nse2.py --yes || {
 
 # 3. Bonus splits data
 
-$VENV_PYTHON corp_action_nse.py --all || {
+$VENV_PYTHON corp_actions_nse.py --all || {
 		echo "Error downloading corp actions data.";
 		exit -2;
 	}

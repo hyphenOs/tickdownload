@@ -199,8 +199,10 @@ def _update_bhavcopy(curdate, stocks_dict, fname=None):
     nse_eq_hist_data = create_or_get_nse_equities_hist_data()
 
     # delete for today's date if there's anything FWIW
+    module_logger.debug("Deleting any old data for date {}.".format(curdate))
     d = nse_eq_hist_data.delete(nse_eq_hist_data.c.date == curdate)
-    execute_one(d)
+    r = execute_one(d)
+    module_logger.debug("Deleted {} rows.".format(r.rowcount))
 
     insert_statements = []
     for k,v in stocks_dict.iteritems():
@@ -330,6 +332,7 @@ def main(args):
 
     cur_date = from_date
     while cur_date <= to_date:
+        module_logger.debug("Getting data for {}.".format(cur_date));
         scrips_dict = get_bhavcopy(cur_date)
         if scrips_dict is not None:
             _update_bhavcopy(cur_date, scrips_dict)
