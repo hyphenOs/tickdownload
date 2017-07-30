@@ -105,7 +105,7 @@ def get_bhavcopy(date='01-01-2002'):
 
     # We do all of the following to avoid - network calls
     error_code = None
-    if x.status_code == 404:
+    if x.status_code == 404 or y.status_code == 404:
         error_code = 'NOT_FOUND'
     else:
         if not (x.ok and y.ok):
@@ -162,7 +162,7 @@ def get_bhavcopy(date='01-01-2002'):
                                         (bhav_url, x.status_code))
         if not y.ok:
             module_logger.error("GET:Delivery URL %s (%d)" % \
-                                        (deliv_url, x.status_code))
+                                        (deliv_url, y.status_code))
         return None
 
 def _update_dload_success(fdate, bhav_ok, deliv_ok, error_code=None):
