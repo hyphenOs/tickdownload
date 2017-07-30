@@ -174,7 +174,7 @@ def _update_dload_success(fdate, bhav_ok, deliv_ok, error_code=None):
     sel_st = select_expr([tbl]).where(tbl.c.download_date == fdate)
 
     res = execute_one(sel_st)
-    if res.rowcount <= 0:
+    if not res.returns_rows:
         ins_or_upd_st = tbl.insert().values(download_date=fdate,
                                         bhav_success=bhav_ok,
                                         deliv_success=deliv_ok,
