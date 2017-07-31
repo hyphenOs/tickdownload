@@ -70,10 +70,15 @@ now0 = time.time()
 # Approach 2
 then1 = time.time()
 
-sels = [pan[pd]['close'][-1] > pan[pd]['close'][-2] for pd in pan]
+for x in pan:
+    pan[x]['ema55'] = pd.ewma(pan[x]['close'], alpha=1.0/55)
+
+sels = [pan[x]['ema55'][-1] > pan[x]['close'][-1] for x in pan]
 pan1 = pan[sels]
 sels2 = [(pan1[n]['close'][-1] >= (pan1[n]['close'][0] * 1.1)) for n in pan1]
 pan2 = pan1[sels2]
+sels3 = [(pan1[n]['close'][-1] > pan1[n]['close'][-2]) for n in pan2]
+pan3 = pan2[sels3]
 
 now1 = time.time()
 
@@ -95,6 +100,7 @@ cl2 = cl[cl.iloc[:, -1] > cl.iloc[:, -2]]
 
 now3 = time.time()
 
+print pan3
 
 print now0 - then0
 
