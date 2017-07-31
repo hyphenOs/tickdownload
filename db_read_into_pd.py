@@ -57,20 +57,49 @@ pan = pd.Panel(scripdata_dict)
 
 import time
 
-# Select a few rows
-then = time.time()
+# Approach 1
+then0 = time.time()
+
+pan2 = pan.transpose(2, 0, 1)
+cl = pan2['close']
+cl2 = cl[cl.iloc[:, -1] > cl.iloc[:, -2]]
+pan11 = pan[cl2.index]
+
+now0 = time.time()
+
+# Approach 2
+then1 = time.time()
+
 sels = [pan[pd]['close'][-1] > pan[pd]['close'][-2] for pd in pan]
 pan1 = pan[sels]
 sels2 = [(pan1[n]['close'][-1] >= (pan1[n]['close'][0] * 1.1)) for n in pan1]
 pan2 = pan1[sels2]
-now = time.time()
 
-print now - then
+now1 = time.time()
 
-# Distribution of returns - say
+# Different calc
+
+# Approach 1
 then2 = time.time()
+
 rets = [ pan[pd]['close'][-1] / pan[pd]['close'][0] for pd in pan]
+
 now2 = time.time()
 
+# Approach 2. FIXME : complete this
+then3 = time.time()
+
+pan2 = pan.transpose(2, 0, 1)
+cl = pan2['close']
+cl2 = cl[cl.iloc[:, -1] > cl.iloc[:, -2]]
+
+now3 = time.time()
+
+
+print now0 - then0
+
+print now1 - then1
 
 print now2 - then2
+
+print now3 - then3
