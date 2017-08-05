@@ -22,6 +22,7 @@ pr.enable()
 sels = [pan[x]['close'][-1] > pan[x]['close'][-2] for x in pan]
 
 pr.disable()
+pr.dump_stats('lc.stats')
 s = StringIO.StringIO()
 sort_by = 'cumulative'
 ps = pstats.Stats(pr, stream=s).sort_stats(sort_by)

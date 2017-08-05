@@ -28,11 +28,11 @@ cl2 = cl[cl.iloc[:, -1] > cl.iloc[:, -2]]
 pan11 = pan[cl2.index]
 
 pr.disable()
+pr.dump_stats('vector.stats')
 s = StringIO.StringIO()
 sort_by = 'cumulative'
 ps = pstats.Stats(pr, stream=s).sort_stats(sort_by)
 ps.print_stats(0.1)
-
 now0 = time.time()
 
 print now0 - then0

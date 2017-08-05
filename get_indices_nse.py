@@ -26,17 +26,18 @@ _PREF_DAYS = 100
 _DATE_FMT = '%d-%m-%Y'
 
 _INDICES_DICT = {
-                    'NIFTY' : ('NIFTY 50', '03-07-1990'),
-                    'JUNIOR' : ('NIFTY NEXT 50', '24-12-1996'),
+                    'NIFTY' : ('NIFTY 50', '03-11-1995'),
+                    'JUNIOR' : ('NIFTY NEXT 50', '01-01-1997'),
                     'CNX100' : ('NIFTY 100', '01-12-2005'),
                     'CNX200' : ('NIFTY 200', '03-10-2011'),
                     'CNX500' : ('NIFTY 500', '07-06-1999'),
+                    'NIFTY_MIDCAP' : ('NIFTY MIDCAP 50', '25-09-2007'),
+                    'BANKNIFTY' : ('NIFTY BANK', '09-06-2005'),
                     #'MIDCAP' : ('CNX MIDCAP', '01-01-2001'),
                     #'SMALLCAP' : ('CNX SMALLCAP', '01-01-2004'),
                     #'LIX15' : ('LIX 15', '01-01-2009'),
                     #'LIX15MIDCAP' : ('LIX15 Midcap', '01-01-2009'),
                     #'NIFTY_MIDCAP2' : ('NIFTY MIDCAP 150', '01-01-2004'),
-                    'NIFTY_MIDCAP' : ('NIFTY MIDCAP 50', '25-09-2007'),
                     #'CNXAUTO' : ('CNX AUTO', '01-01-2004'),
                     #'BANKNIFTY' : ('BANK NIFTY', '01-01-2000'),
                     #'CNXENERGY' : ('CNX ENERGY', '01-01-2001'),
@@ -172,6 +173,7 @@ def _do_get_index(idx, start_dt, end_dt):
     ## Optionally get the CSV - this often gives 404, we've to find why!
     # The CSV downloading part is unreliable - so we are just downloading
     # 100 entries at a time
+    print vals
     return vals
 
 def get_indices(indices, from_date=None, to_date=None):
@@ -214,7 +216,7 @@ def main(args):
                         help="From Date in DD-MM-YYYY format. " \
                                 "Default is 01-01-2002",
                         dest='fromdate',
-                        default="01-01-2002")
+                        default='')
 
     # --to option
     parser.add_argument("--to",
@@ -242,7 +244,10 @@ def main(args):
         return 0
 
     try:
-        from_date = dt.strptime(args.fromdate, _DATE_FMT)
+        print args.fromdate
+        if args.fromdate :
+            from_date = dt.strptime(args.fromdate, _DATE_FMT)
+
         if args.todate.lower() == 'today':
             args.todate = dt.now().strftime(_DATE_FMT)
         to_date = dt.strptime(args.todate, _DATE_FMT)
@@ -251,24 +256,31 @@ def main(args):
         sys.exit(-1)
 
     # We are now ready to download data
-    if from_date > to_date:
+    if args.fromdate and from_date > to_date:
         print parser.format_usage()
         sys.exit(-1)
 
-    num_days = to_date - from_date
-
-    if num_days.days > _WARN_DAYS:
-        if args.sure:
-            sure = True
-        else:
-            sure = raw_input("Tatal number of days for download is %1d. "
-                             "Are you Sure?[y|N] " % num_days.days)
-            if sure.lower() in ("y", "ye", "yes"):
+    if args.fromdate:
+        num_days = to_date - from_date
+        if num_days.days > _WARN_DAYS:
+            if args.sure:
                 sure = True
             else:
-                sure = False
+                sure = raw_input("Tatal number of days for download is %1d. "
+                             "Are you Sure?[y|N] " % num_days.days)
+                if sure.lower() in ("y", "ye", "yes"):
+                    sure = True
+                else:
+                    sure = False
+        else:
+            sure = True
     else:
-        sure = True
+        sure = raw_input("Downloading data from beginning for the Index. "
+                     "Are you Sure?[y|N] ")
+        if sure.lower() in ("y", "ye", "yes"):
+            sure = True
+        else:
+            sure = False
 
     if not sure:
         return 0
