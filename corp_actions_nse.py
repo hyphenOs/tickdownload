@@ -25,6 +25,8 @@ import re
 
 import time, random
 
+#FIXME : Implement bonus/split processing from a specific date.
+
 # _CorpActionAll is a named tuple of following type
 #"Symbol","Company","Industry","Series","Face Value(Rs.)","Purpose",
 # "Ex-Date","Record Date","BC Start Date","BC End Date",
