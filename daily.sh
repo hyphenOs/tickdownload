@@ -43,10 +43,10 @@ $VENV_PYTHON get_stocks_nse2.py --yes --from $from_date || {
 # FIXME: When bonus split for specific time period is implemented, fix below.
 # 2. Bonus splits data
 
-$VENV_PYTHON corp_actions_nse.py --all || {
-		echo "Error downloading corp actions data.";
-		exit -2;
-	}
+# $VENV_PYTHON corp_actions_nse.py --all || {
+		# echo "Error downloading corp actions data.";
+		# exit -2;
+	# }
 
 # 3. Indices data
 
