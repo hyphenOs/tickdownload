@@ -34,19 +34,17 @@ from_date=`date --date='2 weeks ago' +%d-%m-%Y`
 
 # 1. Download historical data for last 2 weeks (name changes get applied)
 
-
 $VENV_PYTHON get_stocks_nse2.py --yes --from $from_date || {
 		echo "Error downloading all stocks historical data.";
 		exit -1;
 	}
 
-# FIXME: When bonus split for specific time period is implemented, fix below.
 # 2. Bonus splits data
 
-# $VENV_PYTHON corp_actions_nse.py --all || {
-		# echo "Error downloading corp actions data.";
-		# exit -2;
-	# }
+$VENV_PYTHON corp_actions_nse.py --from $from_date || {
+		echo "Error downloading corp actions data.";
+		exit -2;
+	}
 
 # 3. Indices data
 

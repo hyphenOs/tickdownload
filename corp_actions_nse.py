@@ -128,27 +128,44 @@ def _process_ca_text(ca_text):
     return _process_purpose(sorted(list(set(corp_actions)),
                 key=lambda x:x.ex_date))
 
-def get_corp_action_csv(sym_name):
-    """Get's the corp action CSV for the symbol name."""
-    sym_name = sym_name.upper().replace('&', '%26')
-    base = 'http://nseindia.com/corporates/datafiles/'
-    sym_part = 'CA_%s_LAST_24_MONTHS.csv' % sym_name
-    url =  base + sym_part
-    module_logger.info("GET: %s" % url)
-    r = requests.get(url)
-    if r.ok:
-        ca_text = r.text
-    else:
-        module_logger.error("GET: %s(%d)" % (url, r.status_code))
-        print r.text
-        return ''
+def get_corp_action_csv(sym_name=None, time_period=None):
+    """
+    Get's the corp action CSV for the symbol name, if sym_name is specified or
+    else get's corp action CSV for the time_period specifid. If both are
+    specified, get's for both.
+    """
+    ca_text = ''
+    if sym_name:
+        sym_name = sym_name.upper().replace('&', '%26')
+        base = 'http://nseindia.com/corporates/datafiles/'
+        sym_part = 'CA_%s_LAST_24_MONTHS.csv' % sym_name
+        url =  base + sym_part
+        module_logger.info("GET: %s" % url)
+        r = requests.get(url)
+        if r.ok:
+            ca_text += r.text
+        else:
+            module_logger.error("GET: %s(%d)" % (url, r.status_code))
 
-    sym_part2 = 'CA_%s_MORE_THAN_24_MONTHS.csv' % sym_name
-    url =  base + sym_part2
-    module_logger.info("GET: %s" % url)
-    r = requests.get(url)
-    if r.ok:
-        ca_text += r.text
+        sym_part2 = 'CA_%s_MORE_THAN_24_MONTHS.csv' % sym_name
+        url =  base + sym_part2
+        module_logger.info("GET: %s" % url)
+        r = requests.get(url)
+        if r.ok:
+            ca_text += r.text
+        else:
+            module_logger.error("GET: %s(%d)" % (url, r.status_code))
+
+    if time_period:
+        base = 'http://nseindia.com/corporates/datafiles/'
+        sym_part = 'CA_LAST_%s.csv' % time_period
+        url =  base + sym_part
+        module_logger.info("GET: %s" % url)
+        r = requests.get(url)
+        if r.ok:
+            ca_text += r.text
+        else:
+            module_logger.error("GET: %s(%d)" % (url, r.status_code))
 
     return _process_ca_text(ca_text)
 
@@ -157,27 +174,52 @@ def main(args):
     import argparse
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--all",
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument("--all",
                         help="Download data for all stocks. Usually you'd have "
                             "to do it only once.",
                         dest="all_stocks",
                         action="store_true")
 
+    group.add_argument("--from",
+                        help="Download data from this data. Date Format "
+                            "'DD-MM-YYYY'.",
+                        dest="from_date")
+
     args, unprocessed = parser.parse_known_args()
 
+    all_corp_actions = []
     if args.all_stocks:
         unprocessed = map(lambda x: x.symbol, nse_get_all_stocks_list())
 
-
-    all_corp_actions = []
+    # It's possible to give --from DD-MM-YYYY infy (say), just help
     for stock in unprocessed:
         time.sleep(random.randint(1,5))
         try:
-            corp_actions = get_corp_action_csv(stock)
+            corp_actions = get_corp_action_csv(sym_name=stock)
         except Exception as e:
             module_logger.exception(e)
             continue
         all_corp_actions.extend(corp_actions)
+
+    if args.from_date:
+        try:
+            from_date = dt.date(dt.strptime(args.from_date, '%d-%m-%Y'))
+            today = dt.date(dt.now())
+            td = today - from_date
+            if td.days < 0:
+                print("From date cannot be greater than today.")
+                return -1
+            if td.days < 15:
+                corp_actions = get_corp_action_csv(time_period='15_DAYS')
+            else:
+                corp_actions = get_corp_actions_csv(time_period='3_MONTHS')
+
+            all_corp_actions.extend(corp_actions)
+
+        except ValueError as e:
+            print("Date '{}' in unsupported format".format(args.from_date))
+            return -1
 
     tbl = create_or_get_nse_corp_actions_hist_data()
 
