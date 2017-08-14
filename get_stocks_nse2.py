@@ -174,21 +174,27 @@ def _update_dload_success(fdate, bhav_ok, deliv_ok, error_code=None):
     sel_st = select_expr([tbl]).where(tbl.c.download_date == fdate)
 
     res = execute_one(sel_st)
-    if not res.returns_rows:
+    # res.first closes the result
+    first_row = res.first()
+
+    # Following is the closest to what I wanted for an 'upsert' support in
+    # DB agnostic way. Clearly this is not most ideal, but as of now I do not
+    # know of better way of doing this.
+    # This issue discusses something similar
+    # https://groups.google.com/forum/#!topic/sqlalchemy/63OnY_ZFmic
+    if not first_row:
         ins_or_upd_st = tbl.insert().values(download_date=fdate,
                                         bhav_success=bhav_ok,
                                         deliv_success=deliv_ok,
                                         error_type=error_code)
     else:
+        module_logger.info("Found row. Updating {}".format(str(first_row)))
         ins_or_upd_st = tbl.update().where(tbl.c.download_date == fdate).\
                                         values(download_date=fdate,
                                             bhav_success=bhav_ok,
                                             deliv_success=deliv_ok,
                                             error_type=error_code)
     module_logger.debug(ins_or_upd_st.compile().params)
-
-    #FIXME : check
-    res.close()
 
     result = execute_one_insert(ins_or_upd_st)
     result.close()
