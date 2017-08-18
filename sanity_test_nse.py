@@ -3,7 +3,7 @@
 import random
 
 # 1. Get a list of all nse symbols
-from nse_utils import nse_get_all_stocks_list
+from tickerplot.nse.nse_utils import nse_get_all_stocks_list
 nse_get_all_stocks_list(start=random.randint(1,10), count=2)
 del nse_get_all_stocks_list
 
@@ -13,7 +13,7 @@ get_corp_action_csv('INFY')
 del get_corp_action_csv
 
 # 3. Get a list of symbol name changes
-from nse_utils import nse_get_name_change_tuples
+from tickerplot.nse.nse_utils import nse_get_name_change_tuples
 nse_get_name_change_tuples()
 del nse_get_name_change_tuples
 
