@@ -24,11 +24,15 @@ from bse_utils import bse_get_all_stocks_list
 from utils import get_datetime_for_datestr
 
 import os
-from utils import get_logger
+
+from tickerplot.utils.logger import get_logger
 module_logger = get_logger(os.path.basename(__file__))
 
-from sqlalchemy_wrapper import create_or_get_all_scrips_table
-from sqlalchemy_wrapper import execute_many_insert
+from tickerplot.sql.sqlalchemy_wrapper import create_or_get_all_scrips_table
+from tickerplot.sql.sqlalchemy_wrapper import execute_many_insert
+from tickerplot.sql.sqlalchemy_wrapper import get_metadata
+
+_DB_METADATA = None
 
 from datetime import datetime as dt
 
@@ -58,7 +62,7 @@ def populate_all_scrips_table():
     bse_only_isins = set(bse_isins) - common_isins
     nse_only_isins = set(nse_isins) - common_isins
 
-    t = create_or_get_all_scrips_table()
+    t = create_or_get_all_scrips_table(metadata=_DB_METADATA)
 
     count = 0
     insert_statements = []
@@ -131,13 +135,36 @@ def populate_all_scrips_table():
 
     return insert_statements
 
-if __name__ == '__main__':
+def main(args):
 
-    import sys
+    import argparse
+    parser = argparse.ArgumentParser()
+
+    # --dbpath option
+    parser.add_argument("--dbpath",
+                        help="Database URL to be used.",
+                        dest="dbpath")
+
+    args = parser.parse_args()
+
+    # Make sure we can access the DB path if specified or else exit right here.
+    if args.dbpath:
+        try:
+            _DB_METADATA = get_metadata(args.dbpath)
+        except Exception as e:
+            print ("Not a valid DB URL: {} (Exception: {})".format(
+                                                            args.dbpath, e))
+            return -1
 
     insert_statements = populate_all_scrips_table()
     results = execute_many_insert(insert_statements)
     for r in results:
         r.close()
 
-    sys.exit(0)
+    return 0
+
+if __name__ == '__main__':
+
+    import sys
+
+    sys.exit(main(sys.argv))

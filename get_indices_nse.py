@@ -4,8 +4,6 @@
 #
 
 import os
-from utils import get_logger
-module_logger = get_logger(os.path.basename(__file__))
 
 import requests
 import sys
@@ -17,8 +15,14 @@ import random
 from datetime import datetime as dt
 from datetime import timedelta as td
 
-from sqlalchemy_wrapper import create_or_get_nse_indices_hist_data
-from sqlalchemy_wrapper import execute_many_insert
+from tickerplot.sql.sqlalchemy_wrapper import create_or_get_nse_indices_hist_data
+from tickerplot.sql.sqlalchemy_wrapper import execute_many_insert
+from tickerplot.sql.sqlalchemy_wrapper import get_metadata
+
+from tickerplot.utils.logger import get_logger
+module_logger = get_logger(os.path.basename(__file__))
+
+_DB_METADATA = None
 
 _WARN_DAYS = 100
 _MAX_DAYS = 365
@@ -109,7 +113,7 @@ def download_and_save_index(idx, start_date=None, end_date=None):
         if e2 > e:
             e2 = e
 
-    tbl = create_or_get_nse_indices_hist_data()
+    tbl = create_or_get_nse_indices_hist_data(metadata=_DB_METADATA)
 
     insert_statements = []
     for row in all_data:
@@ -237,14 +241,27 @@ def main(args):
                         dest="all_indices",
                         action="store_true")
 
+    # --dbpath option
+    parser.add_argument("--dbpath",
+                        help="Database URL to be used.",
+                        dest="dbpath")
+
     args, unprocessed = parser.parse_known_args()
+
+    # Make sure we can access the DB path if specified or else exit right here.
+    if args.dbpath:
+        try:
+            _DB_METADATA = get_metadata(args.dbpath)
+        except Exception as e:
+            print ("Not a valid DB URL: {} (Exception: {})".format(
+                                                            args.dbpath, e))
+            return -1
 
     if args.list_indices:
         print(_format_indices())
         return 0
 
     try:
-        print args.fromdate
         if args.fromdate :
             from_date = dt.strptime(args.fromdate, _DATE_FMT)
 
