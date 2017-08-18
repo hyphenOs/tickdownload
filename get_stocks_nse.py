@@ -316,6 +316,7 @@ def main(args):
     # Make sure we can access the DB path if specified or else exit right here.
     if args.dbpath:
         try:
+            global _DB_METADATA
             _DB_METADATA = get_metadata(args.dbpath)
         except Exception as e:
             print ("Not a valid DB URL: {} (Exception: {})".format(

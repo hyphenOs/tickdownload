@@ -19,9 +19,10 @@ bse_group : 'BSE Group'
 
 Periodically we run this to update the table.
 """
-from nse_utils import nse_get_all_stocks_list
-from bse_utils import bse_get_all_stocks_list
-from utils import get_datetime_for_datestr
+from tickerplot.nse.nse_utils import nse_get_all_stocks_list
+from tickerplot.bse.bse_utils import bse_get_all_stocks_list
+
+from datetime import datetime as dt
 
 import os
 
@@ -64,15 +65,15 @@ def populate_all_scrips_table():
 
     t = create_or_get_all_scrips_table(metadata=_DB_METADATA)
 
+    print t
     count = 0
     insert_statements = []
     for isin in common_isins:
         nstock = nse_stocks_dict[isin]
         bstock = bse_stocks_dict[isin]
 
-        nstart_datetime = get_datetime_for_datestr(
-                                                datestr=nstock.listing_date,
-                                                fmt='%d-%b-%Y')
+        nstart_datetime = dt.strptime(nstock.listing_date,
+                                                '%d-%b-%Y')
         nstart_date = dt.date(nstart_datetime)
 
         ins = t.insert().values(security_isin=nstock.isin,
@@ -114,7 +115,7 @@ def populate_all_scrips_table():
     for isin in nse_only_isins:
         nstock = nse_stocks_dict[isin]
 
-        nstart_datetime = get_datetime_for_datestr(nstock.listing_date,
+        nstart_datetime = dt.strptime(nstock.listing_date,
                                                 '%d-%b-%Y')
         nstart_date = dt.date(nstart_datetime)
 
@@ -149,7 +150,9 @@ def main(args):
 
     # Make sure we can access the DB path if specified or else exit right here.
     if args.dbpath:
+        print args.dbpath
         try:
+            global _DB_METADATA
             _DB_METADATA = get_metadata(args.dbpath)
         except Exception as e:
             print ("Not a valid DB URL: {} (Exception: {})".format(

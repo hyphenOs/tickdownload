@@ -1,12 +1,15 @@
 import pandas as pd
 
-from sqlalchemy_wrapper import execute_one, get_engine
-from sqlalchemy_wrapper import create_or_get_all_scrips_table
-from sqlalchemy_wrapper import create_or_get_nse_equities_hist_data
-from sqlalchemy_wrapper import select_expr
+from tickerplot.sql.sqlalchemy_wrapper import execute_one, get_engine
+from tickerplot.sql.sqlalchemy_wrapper import create_or_get_all_scrips_table
+from tickerplot.sql.sqlalchemy_wrapper import create_or_get_nse_equities_hist_data
+from tickerplot.sql.sqlalchemy_wrapper import select_expr
+from tickerplot.sql.sqlalchemy_wrapper import get_metadata
+
+_DB_METADATA = None
 
 def get_all_scrips_names_in_db():
-    all_scrips_table = create_or_get_all_scrips_table()
+    all_scrips_table = create_or_get_all_scrips_table(metadata=_DB_METADATA)
     scrips_select_st = select_expr([all_scrips_table.c.nse_symbol]).\
                                    where(all_scrips_table.c.nse_traded == True)
 
@@ -20,7 +23,7 @@ def get_hist_data_as_dataframes_dict():
     lscrips = get_all_scrips_names_in_db()
 
     e = get_engine()
-    hist_data = create_or_get_nse_equities_hist_data()
+    hist_data = create_or_get_nse_equities_hist_data(metadata=_DB_METADATA)
 
     scripdata_dict = {}
     for scrip in lscrips:
@@ -42,6 +45,34 @@ def get_hist_data_as_dataframes_dict():
 
     return scripdata_dict
 
+def main(args):
+
+    import argparse
+    parser = argparse.ArgumentParser()
+
+    # --dbpath option
+    parser.add_argument("--dbpath",
+                        help="Database URL to be used.",
+                        dest="dbpath")
+
+    args = parser.parse_args()
+
+    # Make sure we can access the DB path if specified or else exit right here.
+    if args.dbpath:
+        try:
+            global _DB_METADATA
+            _DB_METADATA = get_metadata(args.dbpath)
+        except Exception as e:
+            print ("Not a valid DB URL: {} (Exception: {})".format(
+                                                            args.dbpath, e))
+            return -1
+
+    get_hist_data_as_dataframes_dict()
+
+    return 0
+
 if __name__ == '__main__':
 
-    print get_hist_data_as_dataframes_dict()
+    import sys
+
+    sys.exit(main(sys.argv))
