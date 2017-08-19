@@ -5,7 +5,7 @@
 # for a BSE scrip
 
 import os
-from utils import get_logger
+from tickerplot.utils.logger import get_logger
 module_logger = get_logger(os.path.basename(__file__))
 
 import requests

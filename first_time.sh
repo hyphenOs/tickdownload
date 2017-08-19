@@ -5,8 +5,16 @@
 # this script.
 
 if [ $# -lt 1 ]; then
-	echo "Usage : ${0} <db-url>"
+	COMMAND=`basename ${0}`
+	echo "Usage : ${COMMAND} <db-url>"
+	echo "       db-url : use SQLAlchemy Supported format like sqlite:///<path-to-file>"
+	echo ""
+	exit -1
 fi
+
+DB_PATH=${1}
+
+echo "Using ${DB_PATH} for storing data."
 
 # First make sure you have all the required packages installed. Assumes
 # Virtualenv python package installed.
@@ -38,21 +46,21 @@ $VENV_PYTHON all_stocks_list.py
 
 # 2. First download all historical data (Name changes already applied this.)
 
-$VENV_PYTHON get_stocks_nse2.py --yes || {
+$VENV_PYTHON get_stocks_nse.py --yes --dbpath ${DB_PATH} || {
 		echo "Error downloading all stocks historical data.";
 		exit -1;
 	}
 
 # 3. Bonus splits data
 
-$VENV_PYTHON corp_actions_nse.py --all || {
+$VENV_PYTHON corp_actions_nse.py --all --dbpath ${DB_PATH} || {
 		echo "Error downloading corp actions data.";
 		exit -2;
 	}
 
 # 4. Indices data
 
-$VENV_PYTHON get_indices_nse.py --all --yes || {
+$VENV_PYTHON get_indices_nse.py --all --yes --dbpath ${DB_PATH} || {
 		echo "Downloading Indices data.";
 		exit -3;
 	}

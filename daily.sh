@@ -4,8 +4,14 @@
 # This script is to be run daily to download last few days data
 
 if [ $# -lt 1 ]; then
-	echo "Usage : ${0} <db-url>"
+	COMMAND=`basename ${0}`
+	echo "Usage : ${COMMAND} <db-url>"
+	echo "       db-url : use SQLAlchemy Supported format like sqlite:///<path-to-file>"
+	echo ""
+	exit -1
 fi
+
+DB_PATH=${1}
 
 # First make sure you have all the required packages installed. Assumes
 # Virtualenv python package installed.
@@ -34,21 +40,21 @@ from_date=`date --date='2 weeks ago' +%d-%m-%Y`
 
 # 1. Download historical data for last 2 weeks (name changes get applied)
 
-$VENV_PYTHON get_stocks_nse2.py --yes --from $from_date || {
+$VENV_PYTHON get_stocks_nse.py --yes --from $from_date --dbpath ${DB_PATH} || {
 		echo "Error downloading all stocks historical data.";
 		exit -1;
 	}
 
 # 2. Bonus splits data
 
-$VENV_PYTHON corp_actions_nse.py --from $from_date || {
+$VENV_PYTHON corp_actions_nse.py --from $from_date --dbpath ${DB_PATH} || {
 		echo "Error downloading corp actions data.";
 		exit -2;
 	}
 
 # 3. Indices data
 
-$VENV_PYTHON get_indices_nse.py --all --yes --from $from_date || {
+$VENV_PYTHON get_indices_nse.py --all --yes --from $from_date --dbpath ${DB_PATH} || {
 		echo "Downloading Indices data.";
 		exit -3;
 	}

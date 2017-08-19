@@ -12,18 +12,24 @@ scrip, ex_date, type(B:bonus,D:dividend,S:split), ratio, value.
 ratio < 1.0 for bonus/split, value in Rs. for div"""
 
 import os
-from utils import get_logger
-module_logger = get_logger(os.path.basename(__file__))
 
 import requests
 
-from nse_utils import nse_get_all_stocks_list
 from collections import namedtuple
 
 from datetime import datetime as dt
 import re
 
 import time, random
+
+from tickerplot.nse.nse_utils import nse_get_all_stocks_list
+from tickerplot.utils.logger import get_logger
+module_logger = get_logger(os.path.basename(__file__))
+
+from tickerplot.sql.sqlalchemy_wrapper import create_or_get_nse_corp_actions_hist_data
+from tickerplot.sql.sqlalchemy_wrapper import execute_many_insert
+from tickerplot.sql.sqlalchemy_wrapper import get_metadata
+_DB_METADATA = None
 
 #FIXME : Implement bonus/split processing from a specific date.
 
@@ -39,8 +45,6 @@ _CorpActionAll = namedtuple('_CorpActionAll', ['sym', 'name', 'industry',
 CorpAction = namedtuple('CorpAction', ['sym', 'ex_date', 'action',
                                         'ratio', 'delta'])
 
-from sqlalchemy_wrapper import create_or_get_nse_corp_actions_hist_data
-from sqlalchemy_wrapper import execute_many_insert
 
 # Don't ask me how I got these regex, lots of trial/error
 _div_regex = re.compile(r'(?:.*?)(?P<div>(?:(?:div.*?)(\d+%)|(?:div.*?(rs\.?)?)\s*(\d+\.?\d*)))')
@@ -186,7 +190,23 @@ def main(args):
                             "'DD-MM-YYYY'.",
                         dest="from_date")
 
+
+    # --dbpath option
+    parser.add_argument("--dbpath",
+                        help="Database URL to be used.",
+                        dest="dbpath")
+
     args, unprocessed = parser.parse_known_args()
+
+    # Make sure we can access the DB path if specified or else exit right here.
+    if args.dbpath:
+        try:
+            global _DB_METADATA
+            _DB_METADATA = get_metadata(args.dbpath)
+        except Exception as e:
+            print ("Not a valid DB URL: {} (Exception: {})".format(
+                                                            args.dbpath, e))
+            return -1
 
     all_corp_actions = []
     if args.all_stocks:
@@ -221,7 +241,7 @@ def main(args):
             print("Date '{}' in unsupported format".format(args.from_date))
             return -1
 
-    tbl = create_or_get_nse_corp_actions_hist_data()
+    tbl = create_or_get_nse_corp_actions_hist_data(metadata=_DB_METADATA)
 
     all_insert_statements = []
     for corp_action in all_corp_actions:
