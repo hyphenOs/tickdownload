@@ -150,7 +150,6 @@ def main(args):
 
     # Make sure we can access the DB path if specified or else exit right here.
     if args.dbpath:
-        print args.dbpath
         try:
             global _DB_METADATA
             _DB_METADATA = get_metadata(args.dbpath)
@@ -160,7 +159,7 @@ def main(args):
             return -1
 
     insert_statements = populate_all_scrips_table()
-    results = execute_many_insert(insert_statements)
+    results = execute_many_insert(insert_statements, engine=_DB_METADATA.bind)
     for r in results:
         r.close()
 

@@ -254,7 +254,8 @@ def main(args):
         all_insert_statements.append(insert_st)
         module_logger.debug("insert_st : %s" % insert_st.compile().params)
 
-    results = execute_many_insert(all_insert_statements)
+    results = execute_many_insert(all_insert_statements,
+                                    engine=_DB_METADATA.bind)
     for result in results:
         result.close()
 

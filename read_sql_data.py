@@ -14,7 +14,7 @@ def get_all_scrips_names_in_db():
                                    where(all_scrips_table.c.nse_traded == True)
 
 
-    result = execute_one(scrips_select_st)
+    result = execute_one(scrips_select_st, engine=_DB_METADATA.bind)
     symbols = [row[0] for row in result.fetchall()]
 
     return symbols

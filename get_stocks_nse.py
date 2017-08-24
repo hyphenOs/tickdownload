@@ -178,7 +178,7 @@ def _update_dload_success(fdate, bhav_ok, deliv_ok, error_code=None):
 
     sel_st = select_expr([tbl]).where(tbl.c.download_date == fdate)
 
-    res = execute_one(sel_st)
+    res = execute_one(sel_st, engine=_DB_METADATA.bind)
     # res.first closes the result
     first_row = res.first()
 
@@ -201,7 +201,7 @@ def _update_dload_success(fdate, bhav_ok, deliv_ok, error_code=None):
                                             error_type=error_code)
     module_logger.debug(ins_or_upd_st.compile().params)
 
-    result = execute_one_insert(ins_or_upd_st)
+    result = execute_one_insert(ins_or_upd_st, engine=_DB_METADATA.bind)
     result.close()
 
 def _update_bhavcopy(curdate, stocks_dict, fname=None):
@@ -212,7 +212,7 @@ def _update_bhavcopy(curdate, stocks_dict, fname=None):
     # delete for today's date if there's anything FWIW
     module_logger.debug("Deleting any old data for date {}.".format(curdate))
     d = nse_eq_hist_data.delete(nse_eq_hist_data.c.date == curdate)
-    r = execute_one(d)
+    r = execute_one(d, engine=_DB_METADATA.bind)
     module_logger.debug("Deleted {} rows.".format(r.rowcount))
 
     insert_statements = []
@@ -225,7 +225,7 @@ def _update_bhavcopy(curdate, stocks_dict, fname=None):
         insert_statements.append(ins)
         module_logger.debug(ins.compile().params)
 
-    results = execute_many_insert(insert_statements)
+    results = execute_many_insert(insert_statements, engine=_DB_METADATA.bind)
     for r in results:
         r.close()
 
@@ -237,7 +237,7 @@ def _bhavcopy_downloaded(fdate, fname=None):
 
     select_st = tbl.select().where(tbl.c.download_date == fdate)
 
-    result = execute_one(select_st.compile())
+    result = execute_one(select_st.compile(), engine=_DB_METADATA.bind)
     result = result.fetchone()
 
     if not result:
@@ -273,7 +273,7 @@ def _apply_name_changes_to_db(syms, fname=None):
 
         update_statements.append(upd)
 
-    results = execute_many_insert(update_statements)
+    results = execute_many_insert(update_statements, engine=_DB_METADATA.bind)
     for r in results:
         r.close()
 

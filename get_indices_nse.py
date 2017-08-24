@@ -131,7 +131,7 @@ def download_and_save_index(idx, start_date=None, end_date=None):
                                         close=c)
         insert_statements.append(insert_st)
 
-    results = execute_many_insert(insert_statements)
+    results = execute_many_insert(insert_statements, engine=_DB_METADATA.bind)
     for r in results:
         r.close()
 
