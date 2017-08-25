@@ -10,10 +10,13 @@ approaches separately and see why something seems more expensive.
 import time
 import pandas as pd
 from read_sql_data import get_hist_data_as_dataframes_dict
+from tickerplot.sql.sqlalchemy_wrapper import get_metadata
+
+metadata = get_metadata('sqlite:///nse_hist_data.sqlite3')
 
 import cProfile, pstats, StringIO
 
-scripdata_dict = get_hist_data_as_dataframes_dict()
+scripdata_dict = get_hist_data_as_dataframes_dict(metadata=metadata)
 pan = pd.Panel(scripdata_dict)
 
 

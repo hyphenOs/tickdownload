@@ -8,22 +8,22 @@ from tickerplot.sql.sqlalchemy_wrapper import get_metadata
 
 _DB_METADATA = None
 
-def get_all_scrips_names_in_db():
-    all_scrips_table = create_or_get_all_scrips_table(metadata=_DB_METADATA)
+def get_all_scrips_names_in_db(metadata=None):
+    all_scrips_table = create_or_get_all_scrips_table(metadata=metadata)
     scrips_select_st = select_expr([all_scrips_table.c.nse_symbol]).\
                                    where(all_scrips_table.c.nse_traded == True)
 
 
-    result = execute_one(scrips_select_st, engine=_DB_METADATA.bind)
+    result = execute_one(scrips_select_st, engine=metadata.bind)
     symbols = [row[0] for row in result.fetchall()]
 
     return symbols
 
-def get_hist_data_as_dataframes_dict():
-    lscrips = get_all_scrips_names_in_db()
+def get_hist_data_as_dataframes_dict(metadata=None):
+    lscrips = get_all_scrips_names_in_db(metadata=metadata)
 
-    e = get_engine()
-    hist_data = create_or_get_nse_equities_hist_data(metadata=_DB_METADATA)
+    e = metadata.bind
+    hist_data = create_or_get_nse_equities_hist_data(metadata=metadata)
 
     scripdata_dict = {}
     for scrip in lscrips:
