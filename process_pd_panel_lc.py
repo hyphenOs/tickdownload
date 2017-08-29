@@ -5,6 +5,9 @@ based on certain criteria. Intuitively this should be slower than the
 
 We want to profile it for different datasets.
 """
+
+from __future__ import print_function
+
 import time
 import pandas as pd
 from read_sql_data import get_hist_data_as_dataframes_dict
@@ -14,25 +17,31 @@ metadata = get_metadata('sqlite:///nse_hist_data.sqlite3')
 
 import cProfile, pstats, StringIO
 
-scripdata_dict = get_hist_data_as_dataframes_dict(metadata=metadata)
-pan = pd.Panel(scripdata_dict)
+import perf
 
-then0 = time.time()
+max_limit = 40
+limit = 20
+while limit < max_limit:
+    scripdata_dict = get_hist_data_as_dataframes_dict(metadata=metadata,
+                                                        limit=limit)
+    pan = pd.Panel(scripdata_dict)
 
-pr = cProfile.Profile()
-pr.enable()
+    then0 = time.time()
+    pr = cProfile.Profile()
+    pr.enable()
 
-sels = [pan[x]['close'][-1] > pan[x]['close'][-2] for x in pan]
+    sels = [pan[x]['close'][-1] > pan[x]['close'][-2] for x in pan]
 
-pr.disable()
-#pr.dump_stats('lc.stats')
-s = StringIO.StringIO()
-sort_by = 'cumulative'
-ps = pstats.Stats(pr, stream=s).sort_stats(sort_by)
-ps.print_stats(0.1)
+    #pr.disable()
+    #s = StringIO.StringIO()
+    #sort_by = 'cumulative'
+    #ps = pstats.Stats(pr, stream=s).sort_stats(sort_by)
+    #ps.print_stats(0.1)
 
-now0 = time.time()
+    now0 = time.time()
 
-print now0 - then0
-print len(filter(lambda x: x, sels))
-print s.getvalue()
+    print (limit, now0 - then0)
+    print (len(filter(lambda x: x, sels)))
+    #print (s.getvalue())
+
+    limit *= 2

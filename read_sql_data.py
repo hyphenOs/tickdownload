@@ -5,7 +5,7 @@ from tickerplot.sql.sqlalchemy_wrapper import create_or_get_all_scrips_table
 from tickerplot.sql.sqlalchemy_wrapper import create_or_get_nse_equities_hist_data
 from tickerplot.sql.sqlalchemy_wrapper import select_expr
 from tickerplot.sql.sqlalchemy_wrapper import get_metadata
-
+from sqlalchemy import desc
 _DB_METADATA = None
 
 def get_all_scrips_names_in_db(metadata=None):
@@ -19,20 +19,24 @@ def get_all_scrips_names_in_db(metadata=None):
 
     return symbols
 
-def get_hist_data_as_dataframes_dict(metadata=None):
+def get_hist_data_as_dataframes_dict(metadata=None, limit=0, max_scrips=16000):
     lscrips = get_all_scrips_names_in_db(metadata=metadata)
 
     e = metadata.bind
     hist_data = create_or_get_nse_equities_hist_data(metadata=metadata)
 
     scripdata_dict = {}
+    scrips = 0
     for scrip in lscrips:
         sql_st = select_expr([hist_data.c.date,
                             hist_data.c.open, hist_data.c.high,
                             hist_data.c.low, hist_data.c.close,
                             hist_data.c.volume, hist_data.c.delivery]).\
                                 where(hist_data.c.symbol == scrip).\
-                                        order_by(hist_data.c.date)
+                                        order_by(desc(hist_data.c.date))
+
+        if limit and type(limit) == int and limit > 0:
+            sql_st = sql_st.limit(limit)
 
         scripdata = pd.io.sql.read_sql(sql_st, e)
 
@@ -42,6 +46,10 @@ def get_hist_data_as_dataframes_dict(metadata=None):
         scripdata.set_index(pd.DatetimeIndex(scripdata['date']), inplace=True)
         scripdata.drop('date', axis=1, inplace=True)
         scripdata_dict[scrip] = scripdata
+
+        scrips += 1
+        if scrips == max_scrips:
+            break
 
     return scripdata_dict
 
