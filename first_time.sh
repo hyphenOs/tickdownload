@@ -12,10 +12,6 @@ if [ $# -lt 1 ]; then
 	exit -1
 fi
 
-DB_PATH=${1}
-
-echo "Using ${DB_PATH} for storing data."
-
 # First make sure you have all the required packages installed. Assumes
 # Virtualenv python package installed.
 
@@ -23,13 +19,31 @@ echo "Using ${DB_PATH} for storing data."
 
 VIRTUALENV=$(which virtualenv)
 
+if [ ${VIRTUALENV}x == x ]; then
+	echo
+	echo "You don't seem to have virtualenv installed. Please install 'virtualenv' for your platform."
+	echo
+	exit -1
+fi
+
+DB_PATH=${1}
+echo "Using ${DB_PATH} for storing data."
+
 if [ -d 'venv' -a -e 'venv/bin/python' ]; then
 	echo "Virtualenv looks already installed and setup."
 
 else
 	echo "Installing Virtualenv in venv directory."
-	$VIRTUALENV venv && venv/bin/pip install -r requirements.txt
+	$VIRTUALENV venv || { echo "Error creating virtual environment."; exit -1; }
+
 fi
+
+echo "Installing dependencies..."
+venv/bin/pip install -r requirements.txt
+
+## For tickerplot package, we'd install directly from git
+echo "Installing tickerplot package."
+venv/bin/pip install -e git+https://github.com/gabhijit/tickerplot.git@0.0.1#egg=tickerplot
 
 PATH=venv/bin/:$PATH
 
@@ -42,7 +56,10 @@ echo $VENV_PYTHON
 
 # 1. Since this is first time, Populate All Scrips Table.
 
-$VENV_PYTHON all_stocks_list.py
+$VENV_PYTHON all_stocks_list.py --dbpath ${DB_PATH} || {
+	echo" Error creating all scrips table.";
+	exit -1;
+}
 
 # 2. First download all historical data (Name changes already applied this.)
 
