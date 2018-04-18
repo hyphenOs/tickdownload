@@ -41,10 +41,6 @@ fi
 echo "Installing dependencies..."
 venv/bin/pip install -r requirements.txt
 
-## For tickerplot package, we'd install directly from git
-echo "Installing tickerplot package."
-venv/bin/pip install -e git+https://github.com/gabhijit/tickerplot.git@0.0.1#egg=tickerplot
-
 PATH=venv/bin/:$PATH
 
 VENV_PYTHON=$(which python)

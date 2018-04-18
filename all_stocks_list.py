@@ -41,12 +41,16 @@ def get_nse_stocks_dict():
     nse_stocks_dict = {} # dictionary of nse stocks key = isin
     for nse_stock in nse_get_all_stocks_list():
         nse_stocks_dict[nse_stock.isin] = nse_stock
+
+    module_logger.info("Found {} Stocks in NSE.".format(len(nse_stocks_dict)))
     return nse_stocks_dict
 
 def get_bse_stocks_dict():
     bse_stocks_dict = {} # dictionary of bse stocks key = isin
     for bse_stock in bse_get_all_stocks_list():
         bse_stocks_dict[bse_stock.isin] = bse_stock
+
+    module_logger.info("Found {} Stocks in BSE.".format(len(nse_stocks_dict)))
     return bse_stocks_dict
 
 def populate_all_scrips_table():
@@ -65,7 +69,6 @@ def populate_all_scrips_table():
 
     t = create_or_get_all_scrips_table(metadata=_DB_METADATA)
 
-    print t
     count = 0
     insert_statements = []
     for isin in common_isins:
