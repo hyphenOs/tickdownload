@@ -17,7 +17,3 @@ from tickerplot.nse.nse_utils import nse_get_name_change_tuples
 nse_get_name_change_tuples()
 del nse_get_name_change_tuples
 
-# 4. Get NSE indices for an index
-from get_indices_nse import get_index
-get_index('NIfTy'.upper())
-del get_index

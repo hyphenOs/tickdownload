@@ -1,6 +1,9 @@
 #
 # Refer to LICENSE file and README file for licensing information.
 #
+#pylint disable-msg:C0103
+#pylint disable-msg:R0913
+
 """Get's data for corporate Actions for a given stock on NSE. Parses and
 stores the bonus and face value splits and dividends.
 
@@ -12,23 +15,24 @@ scrip, ex_date, type(B:bonus,D:dividend,S:split), ratio, value.
 ratio < 1.0 for bonus/split, value in Rs. for div"""
 
 import os
+import re
+import time
+import random
+
+from collections import namedtuple
+from datetime import datetime as dt
 
 import requests
 
-from collections import namedtuple
-
-from datetime import datetime as dt
-import re
-
-import time, random
-
 from tickerplot.nse.nse_utils import nse_get_all_stocks_list
 from tickerplot.utils.logger import get_logger
-module_logger = get_logger(os.path.basename(__file__))
 
 from tickerplot.sql.sqlalchemy_wrapper import create_or_get_nse_corp_actions_hist_data
 from tickerplot.sql.sqlalchemy_wrapper import execute_many_insert
 from tickerplot.sql.sqlalchemy_wrapper import get_metadata
+
+module_logger = get_logger(os.path.basename(__file__))
+
 _DB_METADATA = None
 
 #FIXME : Implement bonus/split processing from a specific date.
@@ -70,7 +74,7 @@ def _do_process_purpose(action):
         #r = re.compile(r'(?:.*?)(?P<div>(?:(?:div.*?)(\\d+%)|(?:div.*?(rs\\.?)?)\\s*(\\d+\\.?\\d*)))')
 
         for x in _div_regex.finditer(purpose):
-            for k,v in x.groupdict().iteritems():
+            for _, v in x.groupdict().iteritems():
                 v = re.sub(_rsr_regex, '', v)
                 for y in _num_per_r.finditer(v):
                     z = y.group()
@@ -86,7 +90,7 @@ def _do_process_purpose(action):
             ratio = n / (n+d)
             action = CorpAction(symbol, ex_date, 'B', ratio, 0.0)
             actions.append(action)
-            module_logger.debug("CorpAction: %s" % str(CorpAction))
+            module_logger.debug("CorpAction: %s", str(CorpAction))
     if purpose.find('spl') >= 0:
         y = _split_regex.search(purpose)
         if y:
@@ -94,7 +98,7 @@ def _do_process_purpose(action):
             ratio = n / d
             action = CorpAction(symbol, ex_date, 'S', ratio, 0.0)
             actions.append(action)
-            module_logger.debug("CorpAction: %s" % str(CorpAction))
+            module_logger.debug("CorpAction: %s", str(CorpAction))
     return actions
 
 
@@ -104,7 +108,6 @@ def _process_purpose(corp_actions):
     the following form.
     symbol, ex_date(yyyy-mm-dd), purpose(d/b/s), ratio(for b/s), value(for d),
     """
-    csvstr = ''
     actions = []
     for a in corp_actions:
         actions.extend(_do_process_purpose(a))
@@ -124,7 +127,7 @@ def _process_ca_text(ca_text):
         if l[0].lower() == 'symbol':
             continue
         if len(l) < len(_CorpActionAll._fields):
-            module_logger.info("Not Processed: %s" % l)
+            module_logger.info("Not Processed: %s", l)
             continue
         l[6] = dt.date(dt.strptime(l[6], '%d-%b-%Y'))
         a = _CorpActionAll(*l)
@@ -144,32 +147,32 @@ def get_corp_action_csv(sym_name=None, time_period=None):
         base = 'http://nseindia.com/corporates/datafiles/'
         sym_part = 'CA_%s_LAST_24_MONTHS.csv' % sym_name
         url =  base + sym_part
-        module_logger.info("GET: %s" % url)
+        module_logger.info("GET: %s", url)
         r = requests.get(url)
         if r.ok:
             ca_text += r.text
         else:
-            module_logger.error("GET: %s(%d)" % (url, r.status_code))
+            module_logger.error("GET: %s(%d)", url, r.status_code)
 
         sym_part2 = 'CA_%s_MORE_THAN_24_MONTHS.csv' % sym_name
         url =  base + sym_part2
-        module_logger.info("GET: %s" % url)
+        module_logger.info("GET: %s", url)
         r = requests.get(url)
         if r.ok:
             ca_text += r.text
         else:
-            module_logger.error("GET: %s(%d)" % (url, r.status_code))
+            module_logger.error("GET: %s(%d)", url, r.status_code)
 
     if time_period:
         base = 'http://nseindia.com/corporates/datafiles/'
         sym_part = 'CA_LAST_%s.csv' % time_period
         url =  base + sym_part
-        module_logger.info("GET: %s" % url)
+        module_logger.info("GET: %s", url)
         r = requests.get(url)
         if r.ok:
             ca_text += r.text
         else:
-            module_logger.error("GET: %s(%d)" % (url, r.status_code))
+            module_logger.error("GET: %s(%d)", url, r.status_code)
 
     return _process_ca_text(ca_text)
 
@@ -210,7 +213,7 @@ def main(args):
 
     all_corp_actions = []
     if args.all_stocks:
-        unprocessed = map(lambda x: x.symbol, nse_get_all_stocks_list())
+        unprocessed = (x.symbol for x in nse_get_all_stocks_list())
 
     # It's possible to give --from DD-MM-YYYY infy (say), just help
     for stock in unprocessed:
@@ -233,7 +236,7 @@ def main(args):
             if td.days < 15:
                 corp_actions = get_corp_action_csv(time_period='15_DAYS')
             else:
-                corp_actions = get_corp_actions_csv(time_period='3_MONTHS')
+                corp_actions = get_corp_action_csv(time_period='3_MONTHS')
 
             all_corp_actions.extend(corp_actions)
 
@@ -245,14 +248,14 @@ def main(args):
 
     all_insert_statements = []
     for corp_action in all_corp_actions:
-        module_logger.debug("CorpAction :%s" % str(corp_action))
+        module_logger.debug("CorpAction :%s", str(corp_action))
         insert_st = tbl.insert().values(symbol=corp_action.sym,
                                         ex_date=corp_action.ex_date,
                                         action=corp_action.action,
                                         ratio=corp_action.ratio,
                                         delta=corp_action.delta)
         all_insert_statements.append(insert_st)
-        module_logger.debug("insert_st : %s" % insert_st.compile().params)
+        module_logger.debug("insert_st : %s", insert_st.compile().params)
 
     results = execute_many_insert(all_insert_statements,
                                     engine=_DB_METADATA.bind)
@@ -265,4 +268,3 @@ if __name__ == '__main__':
 
     import sys
     sys.exit(main(sys.argv[1:]))
-

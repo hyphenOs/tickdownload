@@ -22,10 +22,8 @@ from datetime import datetime as dt
 from datetime import timedelta as td
 if sys.version_info.major < 3:
     from StringIO import StringIO as bio
-    from itertools import izip
 else:
     from io import BytesIO as bio
-    izip = zip
 
 _BHAV_HEADERS =   {'Host': 'www.nseindia.com',
              'User-Agent':'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:54.0) Gecko/20100101 Firefox/54.0',
@@ -97,10 +95,10 @@ def get_bhavcopy(date='01-01-2002'):
 
     try:
         x = requests.get(bhav_url, headers=_BHAV_HEADERS)
-        module_logger.info("GET:Bhavcopy URL: %s" % bhav_url)
+        module_logger.info("GET:Bhavcopy URL: %s", bhav_url)
 
         y = requests.get(deliv_url, headers=_BHAV_HEADERS)
-        module_logger.info("GET:Delivery URL: %s" % deliv_url)
+        module_logger.info("GET:Delivery URL: %s", deliv_url)
     except requests.RequestException as e:
         module_logger.exception(e)
         # We don't update bhav_deliv_downloaded here
@@ -153,21 +151,19 @@ def get_bhavcopy(date='01-01-2002'):
             try:
                 stocks_dict[sym][-1] = int(d)
             except KeyError:
-                module_logger.error("For Symbol: %s Delivery Data found but no Bhavcopy Data" % sym)
+                module_logger.error("For Symbol: %s Delivery Data found but no Bhavcopy Data", sym)
             i += 1
 
         for sym in stocks_dict.keys():
             stocks_dict[sym] = ScripOHLCVD(*stocks_dict[sym])
-            module_logger.debug("ScripInfo(%s): %s" % (sym, str(stocks_dict[sym])))
+            module_logger.debug("ScripInfo(%s): %s", sym, str(stocks_dict[sym]))
 
         return stocks_dict
     else:
         if not x.ok:
-            module_logger.error("GET:Bhavcopy URL %s (%d)" % \
-                                        (bhav_url, x.status_code))
+            module_logger.error("GET:Bhavcopy URL %s (%d)", bhav_url, x.status_code)
         if not y.ok:
-            module_logger.error("GET:Delivery URL %s (%d)" % \
-                                        (deliv_url, y.status_code))
+            module_logger.error("GET:Delivery URL %s (%d)", deliv_url, y.status_code)
         return None
 
 def _update_dload_success(fdate, bhav_ok, deliv_ok, error_code=None):
@@ -193,7 +189,7 @@ def _update_dload_success(fdate, bhav_ok, deliv_ok, error_code=None):
                                         deliv_success=deliv_ok,
                                         error_type=error_code)
     else:
-        module_logger.info("Found row. Updating {}".format(str(first_row)))
+        module_logger.info("Found row. Updating %s", str(first_row))
         ins_or_upd_st = tbl.update().where(tbl.c.download_date == fdate).\
                                         values(download_date=fdate,
                                             bhav_success=bhav_ok,
@@ -204,13 +200,13 @@ def _update_dload_success(fdate, bhav_ok, deliv_ok, error_code=None):
     result = execute_one_insert(ins_or_upd_st, engine=_DB_METADATA.bind)
     result.close()
 
-def _update_bhavcopy(curdate, stocks_dict, fname=None):
+def _update_bhavcopy(curdate, stocks_dict):
     """update bhavcopy Database date in DD-MM-YYYY format."""
 
     nse_eq_hist_data = create_or_get_nse_equities_hist_data(metadata=_DB_METADATA)
 
     # delete for today's date if there's anything FWIW
-    module_logger.debug("Deleting any old data for date {}.".format(curdate))
+    module_logger.debug("Deleting any old data for date %s.", curdate)
     d = nse_eq_hist_data.delete(nse_eq_hist_data.c.date == curdate)
     r = execute_one(d, engine=_DB_METADATA.bind)
     module_logger.debug("Deleted {} rows.".format(r.rowcount))
@@ -229,7 +225,7 @@ def _update_bhavcopy(curdate, stocks_dict, fname=None):
     for r in results:
         r.close()
 
-def _bhavcopy_downloaded(fdate, fname=None):
+def _bhavcopy_downloaded(fdate):
     """
     Returns success/failure for a given date if bhav/delivery data.
     """
@@ -253,7 +249,7 @@ def _bhavcopy_downloaded(fdate, fname=None):
 
     return (result[1] and result[2]) or ignore_error
 
-def _apply_name_changes_to_db(syms, fname=None):
+def _apply_name_changes_to_db(syms):
     """Changes security names in nse_hist_data table so the name of the security
     is always the latest."""
 
@@ -379,7 +375,5 @@ def main(args):
 
 
 if __name__ == '__main__':
-
-    import sys
 
     sys.exit(main(sys.argv[1:]))

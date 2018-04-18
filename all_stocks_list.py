@@ -1,6 +1,7 @@
 #
 # Refer to LICENSE file and README file for licensing information.
 #
+#pylint: disable-msg=R0914,R0913
 """
 Generates a master list of all stocks from BSE and NSE that we are interested
 in. Stores it in the DB using ISIN as the key. This is uniq so we don't have
@@ -19,30 +20,26 @@ bse_group : 'BSE Group'
 
 Periodically we run this to update the table.
 """
-from tickerplot.nse.nse_utils import nse_get_all_stocks_list
-from tickerplot.bse.bse_utils import bse_get_all_stocks_list
 
+from __future__ import print_function
+import os
 from datetime import datetime as dt
 
-import os
-
-from tickerplot.utils.logger import get_logger
-module_logger = get_logger(os.path.basename(__file__))
-
+from tickerplot.nse.nse_utils import nse_get_all_stocks_list
+from tickerplot.bse.bse_utils import bse_get_all_stocks_list
 from tickerplot.sql.sqlalchemy_wrapper import create_or_get_all_scrips_table
 from tickerplot.sql.sqlalchemy_wrapper import execute_many_insert
 from tickerplot.sql.sqlalchemy_wrapper import get_metadata
 
-_DB_METADATA = None
-
-from datetime import datetime as dt
+from tickerplot.utils.logger import get_logger
+module_logger = get_logger(os.path.basename(__file__))
 
 def get_nse_stocks_dict():
     nse_stocks_dict = {} # dictionary of nse stocks key = isin
     for nse_stock in nse_get_all_stocks_list():
         nse_stocks_dict[nse_stock.isin] = nse_stock
 
-    module_logger.info("Found {} Stocks in NSE.".format(len(nse_stocks_dict)))
+    module_logger.info("Found %d Stocks in NSE.", len(nse_stocks_dict))
     return nse_stocks_dict
 
 def get_bse_stocks_dict():
@@ -50,10 +47,10 @@ def get_bse_stocks_dict():
     for bse_stock in bse_get_all_stocks_list():
         bse_stocks_dict[bse_stock.isin] = bse_stock
 
-    module_logger.info("Found {} Stocks in BSE.".format(len(nse_stocks_dict)))
+    module_logger.info("Found %d Stocks in BSE.", len(bse_stocks_dict))
     return bse_stocks_dict
 
-def populate_all_scrips_table():
+def populate_all_scrips_table(db_metadata):
     """
     Populates the all_scrips_info table.
     """
@@ -67,7 +64,7 @@ def populate_all_scrips_table():
     bse_only_isins = set(bse_isins) - common_isins
     nse_only_isins = set(nse_isins) - common_isins
 
-    t = create_or_get_all_scrips_table(metadata=_DB_METADATA)
+    table = create_or_get_all_scrips_table(metadata=db_metadata)
 
     count = 0
     insert_statements = []
@@ -76,20 +73,20 @@ def populate_all_scrips_table():
         bstock = bse_stocks_dict[isin]
 
         nstart_datetime = dt.strptime(nstock.listing_date,
-                                                '%d-%b-%Y')
+                                      '%d-%b-%Y')
         nstart_date = dt.date(nstart_datetime)
 
-        ins = t.insert().values(security_isin=nstock.isin,
-                                company_name=nstock.name,
-                                nse_traded=True,
-                                nse_start_date=nstart_date,
-                                nse_symbol=nstock.symbol,
-                                #nse_suspended default is False,
-                                bse_traded=True,
-                                bse_start_date=nstart_date,
-                                bse_id=bstock.bseid,
-                                bse_symbol=bstock.symbol,
-                                bse_group=bstock.group)
+        ins = table.insert().values(security_isin=nstock.isin,
+                                    company_name=nstock.name,
+                                    nse_traded=True,
+                                    nse_start_date=nstart_date,
+                                    nse_symbol=nstock.symbol,
+                                    #nse_suspended default is False,
+                                    bse_traded=True,
+                                    bse_start_date=nstart_date,
+                                    bse_id=bstock.bseid,
+                                    bse_symbol=bstock.symbol,
+                                    bse_group=bstock.group)
         module_logger.debug(ins.compile().params)
 
         insert_statements.append(ins)
@@ -101,12 +98,12 @@ def populate_all_scrips_table():
     for isin in bse_only_isins:
         bstock = bse_stocks_dict[isin]
 
-        ins = t.insert().values(security_isin=bstock.isin,
-                                company_name=bstock.name,
-                                bse_traded=True,
-                                bse_id=bstock.bseid,
-                                bse_symbol=bstock.symbol,
-                                bse_group=bstock.group)
+        ins = table.insert().values(security_isin=bstock.isin,
+                                    company_name=bstock.name,
+                                    bse_traded=True,
+                                    bse_id=bstock.bseid,
+                                    bse_symbol=bstock.symbol,
+                                    bse_group=bstock.group)
         module_logger.debug(ins.compile().params)
 
         insert_statements.append(ins)
@@ -119,16 +116,16 @@ def populate_all_scrips_table():
         nstock = nse_stocks_dict[isin]
 
         nstart_datetime = dt.strptime(nstock.listing_date,
-                                                '%d-%b-%Y')
+                                      '%d-%b-%Y')
         nstart_date = dt.date(nstart_datetime)
 
-        ins = t.insert().values(security_isin=nstock.isin,
-                                company_name=nstock.name,
-                                nse_traded=True,
-                                nse_start_date=nstart_date,
-                                nse_symbol=nstock.symbol
-                                #nse_suspended default is False,
-                                )
+        ins = table.insert().values(security_isin=nstock.isin,
+                                    company_name=nstock.name,
+                                    nse_traded=True,
+                                    nse_start_date=nstart_date,
+                                    nse_symbol=nstock.symbol
+                                    #nse_suspended default is False,
+                                   )
         module_logger.debug(ins.compile().params)
 
         insert_statements.append(ins)
@@ -152,19 +149,18 @@ def main(args):
     args = parser.parse_args()
 
     # Make sure we can access the DB path if specified or else exit right here.
+    db_metadata = None
     if args.dbpath:
         try:
-            global _DB_METADATA
-            _DB_METADATA = get_metadata(args.dbpath)
+            db_metadata = get_metadata(args.dbpath)
         except Exception as e:
-            print ("Not a valid DB URL: {} (Exception: {})".format(
-                                                            args.dbpath, e))
+            print("Not a valid DB URL: {} (Exception: {})".format(
+                args.dbpath, e))
             return -1
 
-    insert_statements = populate_all_scrips_table()
-    results = execute_many_insert(insert_statements, engine=_DB_METADATA.bind)
-    for r in results:
-        r.close()
+    insert_statements = populate_all_scrips_table(db_metadata)
+    results = execute_many_insert(insert_statements, engine=db_metadata.bind)
+    _ = [r.close() for r in results]
 
     return 0
 
