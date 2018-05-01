@@ -1,6 +1,7 @@
 #
 # Refer to LICENSE file and README file for licensing information.
 #
+#pylint: disable-msg=broad-except
 """
 Uses daily bhavcopy to download historical data for all stocks.
 One challenge is, bhavcopy has the symbol name for that day. In case of NSE,
@@ -13,32 +14,22 @@ to handle in SQLite than dealing with files).
 """
 
 import os
-
-# BIG FIXME: There are sql statements littered all over the place, sqlalchemy?
-
-import requests
 import sys
+import random
+import time
+
+from zipfile import ZipFile
 from datetime import datetime as dt
 from datetime import timedelta as td
+
+import requests
+
 if sys.version_info.major < 3:
     from StringIO import StringIO as bio
 else:
     from io import BytesIO as bio
 
-_BHAV_HEADERS =   {'Host': 'www.nseindia.com',
-             'User-Agent':'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:54.0) Gecko/20100101 Firefox/54.0',
-             'Accept':'application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5',
-             'Accept-Encoding':'gzip, deflate, br',
-             'Referer':'https://www.nseindia.com/product/content/equities/equities/archives_eq.htm',
-             'Connection': 'keep-alive',
-             'DNT':'1'}
-
-_DB_METADATA = None
-
-import random
-import time
-
-from zipfile import ZipFile
+# BIG FIXME: There are sql statements littered all over the place, sqlalchemy?
 
 from tickerplot.nse.nse_utils import nse_get_name_change_tuples, ScripOHLCVD
 
@@ -51,7 +42,18 @@ from tickerplot.sql.sqlalchemy_wrapper import select_expr, and_expr
 from tickerplot.sql.sqlalchemy_wrapper import get_metadata
 
 from tickerplot.utils.logger import get_logger
+
 module_logger = get_logger(os.path.basename(__file__))
+
+_BHAV_HEADERS =   {'Host': 'www.nseindia.com',
+             'User-Agent':'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:54.0) Gecko/20100101 Firefox/54.0',
+             'Accept':'application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5',
+             'Accept-Encoding':'gzip, deflate, br',
+             'Referer':'https://www.nseindia.com/product/content/equities/equities/archives_eq.htm',
+             'Connection': 'keep-alive',
+             'DNT':'1'}
+
+_DB_METADATA = None
 
 _date_fmt = '%d-%m-%Y'
 
@@ -73,10 +75,8 @@ def get_bhavcopy(date='01-01-2002'):
     global _date_fmt
     if isinstance(date, str):
         d2 = dt.date(dt.strptime(date, _date_fmt))
-        strdate = date
     elif isinstance(date, dt):
         d2 = dt.date(date)
-        strdate = dt.strftime(date, _date_fmt)
     else:
         return None
     yr = d2.strftime('%Y')
@@ -209,7 +209,7 @@ def _update_bhavcopy(curdate, stocks_dict):
     module_logger.debug("Deleting any old data for date %s.", curdate)
     d = nse_eq_hist_data.delete(nse_eq_hist_data.c.date == curdate)
     r = execute_one(d, engine=_DB_METADATA.bind)
-    module_logger.debug("Deleted {} rows.".format(r.rowcount))
+    module_logger.debug("Deleted %d rows.", r.rowcount)
 
     insert_statements = []
     for k,v in stocks_dict.iteritems():
@@ -351,16 +351,16 @@ def main(args):
     if not sure:
         sys.exit(0)
 
-    module_logger.info("Downloading data for {0} days".format(num_days.days))
+    module_logger.info("Downloading data for %d days", num_days.days)
 
     cur_date = from_date
     while cur_date <= to_date:
-        module_logger.debug("Getting data for {}.".format(cur_date));
+        module_logger.debug("Getting data for %s", str(cur_date))
         scrips_dict = get_bhavcopy(cur_date)
         if scrips_dict is not None:
             _update_bhavcopy(cur_date, scrips_dict)
 
-        time.sleep(random.randrange(1,10))
+        time.sleep(random.randrange(1, 10))
 
         cur_date += td(1)
 

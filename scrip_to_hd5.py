@@ -2,14 +2,17 @@
 
 # This is more of a test scrip where we want to explore all ideas.
 
+import pandas as pd
+
+from corp_actions_nse import get_corp_action_csv
+
 csv_filename = '500209.csv'
 
-COL_NAMES = ["Date", "Open Price","High Price","Low Price","Close Price", "No.of Shares", "Deliverable Quantity"]
-import pandas as pd
+COL_NAMES = ["Date", "Open Price", "High Price", "Low Price", "Close Price", "No.of Shares", "Deliverable Quantity"]
 
 #
 infy = pd.read_csv(csv_filename, index_col='Date', usecols=COL_NAMES, parse_dates=True)
-infy.columns =  list('OHLCVD')
+infy.columns = list('OHLCVD')
 
 infy = infy[::-1] # BSE scrip files are reverse latest first
 
@@ -17,7 +20,6 @@ print infy[:10]
 
 hdf_filename = 'infy.h5'
 
-from corp_actions_nse import get_corp_action_csv, CorpAction
 
 c = get_corp_action_csv('infy')
 

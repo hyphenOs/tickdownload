@@ -2,18 +2,18 @@
 #
 # Refer to LICENSE file and README file for licensing information.
 #
+#pylint: disable-msg=broad-except
 
 import os
-
-import requests
 import sys
-import bs4
 import urllib2
 import time
 import random
-
 from datetime import datetime as dt
 from datetime import timedelta as td
+
+import requests
+import bs4
 
 from tickerplot.sql.sqlalchemy_wrapper import create_or_get_nse_indices_hist_data
 from tickerplot.sql.sqlalchemy_wrapper import execute_many_insert
@@ -59,14 +59,6 @@ _INDICES_DICT = {
                     #'VIX' : ('INDIA VIX', '01-01-2010'),
 
                 }
-def prepare():
-    global _BASE_URL
-    """Basic preparation for index download. Load a URL and any other setup
-        required
-    """
-    base = 'http://nseindia.com/products/content/equities/indices/'\
-            'historical_index_data.htm'
-    response = requests.get(base)
 
 def download_and_save_index(idx, start_date=None, end_date=None):
     """
@@ -78,8 +70,8 @@ def download_and_save_index(idx, start_date=None, end_date=None):
     """
 
     if idx not in _INDICES_DICT.keys():
-        module_logger.error("Index %s not found or not supported yet." % idx)
-        module_logger.error("supported Indices are: %s" % \
+        module_logger.error("Index %s not found or not supported yet.", idx)
+        module_logger.error("supported Indices are: %s",
                                     (", ".join(_INDICES_DICT.keys())))
         return None
 
@@ -101,11 +93,11 @@ def download_and_save_index(idx, start_date=None, end_date=None):
         s_ = s.strftime(_DATE_FMT)
         r = _do_get_index(idx, s_, e_)
         if r:
-            module_logger.debug("Downloaded %d records" % len(r))
+            module_logger.debug("Downloaded %d records", len(r))
             all_data.extend(r)
         else:
             module_logger.info("Unable to download some records for"
-                                "%s (%s-%s)" % (idx, s_, e_))
+                                "%s (%s-%s)", idx, s_, e_)
 
         time.sleep(random.randint(1,5))
         s = e2 + td(days=1)
@@ -137,9 +129,8 @@ def download_and_save_index(idx, start_date=None, end_date=None):
 
 
 def _do_get_index(idx, start_dt, end_dt):
-    prepare()
-    module_logger.info("getting data for %s : from : %s to : %s" % \
-                        (idx, start_dt, end_dt))
+    module_logger.info("getting data for %s : from : %s to : %s",
+                        idx, start_dt, end_dt)
 
     params = {'idxstr' : urllib2.quote(_INDICES_DICT[idx][0]),
                 'from' : start_dt,
@@ -157,10 +148,10 @@ def _do_get_index(idx, start_dt, end_dt):
         vals = []
         rows = tbl.find_all('tr')
         if len(rows) <= 3: # Probably an error
-            module_logger.debug("fewer rows, possibly an error. %s" % \
+            module_logger.debug("fewer rows, possibly an error. %s",
                                 rows[-1].text.strip())
             return None
-    except requests.RequestsException as e:
+    except requests.RequestException as e:
         module_logger.exception(e)
         return None
 
@@ -172,8 +163,9 @@ def _do_get_index(idx, start_dt, end_dt):
             # anchor = row.find('a')
             # csv_link = anchor['href']
         else:
-            vals.append(map(lambda x: x.strip(),
-                            filter(lambda x: x, row.text.split('\n'))))
+            vals.append([x.strip() for x in row.text.split('\n')])
+            #vals.append(map(lambda x: x.strip(),
+            #                filter(lambda x: x, row.text.split('\n'))))
     ## Optionally get the CSV - this often gives 404, we've to find why!
     # The CSV downloading part is unreliable - so we are just downloading
     # 100 entries at a time
@@ -185,7 +177,7 @@ def get_indices(indices, from_date=None, to_date=None):
     Downloads all indices givenin the list.
     """
     for idx in indices:
-        module_logger.info("Downloading data for %s." % idx.upper())
+        module_logger.info("Downloading data for %s.", idx.upper())
         download_and_save_index(idx.upper(), from_date, to_date)
     return 0
 
@@ -263,7 +255,7 @@ def main(args):
         return 0
 
     try:
-        if args.fromdate :
+        if args.fromdate:
             from_date = dt.strptime(args.fromdate, _DATE_FMT)
 
         if args.todate.lower() == 'today':
@@ -312,4 +304,3 @@ def main(args):
 if __name__ == '__main__':
 
     sys.exit(main(sys.argv[1:]))
-

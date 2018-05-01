@@ -9,15 +9,15 @@ We want to profile it for different datasets.
 from __future__ import print_function
 
 import time
+import cProfile
+
 import pandas as pd
+
 from read_sql_data import get_hist_data_as_dataframes_dict
 from tickerplot.sql.sqlalchemy_wrapper import get_metadata
 
 metadata = get_metadata('sqlite:///nse_hist_data.sqlite3')
 
-import cProfile, pstats, StringIO
-
-import perf
 
 max_limit = 40
 limit = 20
@@ -41,7 +41,7 @@ while limit < max_limit:
     now0 = time.time()
 
     print (limit, now0 - then0)
-    print (len(filter(lambda x: x, sels)))
+    print (len(sels))
     #print (s.getvalue())
 
     limit *= 2

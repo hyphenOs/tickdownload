@@ -55,8 +55,8 @@ form_data.update(other_data)
 form_data.update(button_data)
 
 print "form_data:"
-for k,v in form_data.items():
-    print k,len(v)
+for k, v in form_data.items():
+    print k, len(v)
     print v
 print "***********"
 

@@ -1,0 +1,25 @@
+#!/bin/bash
+
+PYLINT=venv/bin/pylint
+
+TOPLEVEL=`git rev-parse --show-toplevel`
+
+PYLINTRC=${TOPLEVEL}/.pylintrc
+
+PYLINT_OPTS="--rcfile=${PYLINTRC}"
+
+PACKAGE_NAME=*.py
+
+
+echo "Running Pylint ...."
+${PYLINT} ${PYLINT_OPTS} ${PACKAGE_NAME}
+RESULT=$?
+
+ALL_RESULT=$(( $((${RESULT}&4)) || $((${RESULT}&2)) || $((${RESULT}&1)) ))
+if [[ ${ALL_RESULT} -eq 0 ]]; then
+	echo "pylint: Looks Okay."
+	exit 0
+else
+	echo "pylint: Errors or Warning. Fix them first..."
+	exit -1
+fi

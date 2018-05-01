@@ -5,12 +5,13 @@
 # for a BSE scrip
 
 import os
-from tickerplot.utils.logger import get_logger
-module_logger = get_logger(os.path.basename(__file__))
+from datetime import datetime as dt
 
 import requests
 import bs4
-from datetime import datetime as dt
+
+from tickerplot.utils.logger import get_logger
+module_logger = get_logger(os.path.basename(__file__))
 
 GLOBAL_START_DATE = '01/01/2002'
 DATE_FORMAT = '%d/%m/%Y'
@@ -28,7 +29,7 @@ def _do_get_data_for_security(script_code, sdate, edate):
     url = 'http://www.bseindia.com/markets/equity/EQReports/'\
             'StockPrcHistori.aspx?expandable=7&flag=0'
 
-    module_logger.info("GET: %s" % url)
+    module_logger.info("GET: %s", url)
     x = requests.get(url)
 
     html = bs4.BeautifulSoup(x.text, 'html.parser')
@@ -43,12 +44,12 @@ def _do_get_data_for_security(script_code, sdate, edate):
 
 
     other_data = {
-                'WINDOW_NAMER' : '1',
+                'WINDOW_NAMER': '1',
                 'myDestination': '#',
-                'ctl00$ContentPlaceHolder1$txtFromDate' : sdate,
-                'ctl00$ContentPlaceHolder1$txtToDate' : edate,
-                'ctl00$ContentPlaceHolder1$search' : 'rad_no1',
-                'ctl00$ContentPlaceHolder1$hidYear' : '',
+                'ctl00$ContentPlaceHolder1$txtFromDate': sdate,
+                'ctl00$ContentPlaceHolder1$txtToDate': edate,
+                'ctl00$ContentPlaceHolder1$search': 'rad_no1',
+                'ctl00$ContentPlaceHolder1$hidYear': '',
                 'ctl00$ContentPlaceHolder1$hidToDate' : edate,
                 'ctl00$ContentPlaceHolder1$hidOldDMY' : '',
                 'ctl00$ContentPlaceHolder1$hidFromDate' : sdate,
@@ -67,19 +68,15 @@ def _do_get_data_for_security(script_code, sdate, edate):
 
     }
 
-    dl1_map = {    'ctl00$ContentPlaceHolder1$btnSubmit.x' : '50',
-               'ctl00$ContentPlaceHolder1$btnSubmit.y' : '16',
-    }
-
-    dl2_map = {    'ctl00$ContentPlaceHolder1$btnDownload.x' : '9',
+    dl2_map = {'ctl00$ContentPlaceHolder1$btnDownload.x': '9',
                'ctl00$ContentPlaceHolder1$btnDownload.y' : '5',
     }
 
     form_data.update(other_data)
     form_data.update(dl2_map)
 
-    module_logger.info("POST: %s" % url)
-    module_logger.debug("POST Data: %s" % form_data)
+    module_logger.info("POST: %s", url)
+    module_logger.debug("POST Data: %s", form_data)
     y = requests.post(url, data=form_data, stream=True)
 
     if y.ok:
@@ -93,7 +90,7 @@ def _do_get_data_for_security(script_code, sdate, edate):
                     break
                 handle.write(block)
     else:
-        module_logger.error("Error(POST): %s" % y.text)
+        module_logger.error("Error(POST): %s", y.text)
 
 if  __name__ == '__main__':
 

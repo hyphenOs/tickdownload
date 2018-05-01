@@ -10,13 +10,17 @@ approaches separately and see why something seems more expensive.
 from __future__ import print_function
 
 import time
+import cProfile
+import pstats
+import StringIO
+
 import pandas as pd
+
 from read_sql_data import get_hist_data_as_dataframes_dict
 from tickerplot.sql.sqlalchemy_wrapper import get_metadata
 
 metadata = get_metadata('sqlite:///nse_hist_data.sqlite3')
 
-import cProfile, pstats, StringIO
 
 max_limit = 40
 limit = 20

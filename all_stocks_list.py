@@ -1,7 +1,7 @@
 #
 # Refer to LICENSE file and README file for licensing information.
 #
-#pylint: disable-msg=R0914,R0913
+#pylint: disable-msg=broad-except
 """
 Generates a master list of all stocks from BSE and NSE that we are interested
 in. Stores it in the DB using ISIN as the key. This is uniq so we don't have

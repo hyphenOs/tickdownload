@@ -1,8 +1,7 @@
 #
 # Refer to LICENSE file and README file for licensing information.
 #
-#pylint disable-msg:C0103
-#pylint disable-msg:R0913
+#pylint: disable-msg=broad-except
 
 """Get's data for corporate Actions for a given stock on NSE. Parses and
 stores the bonus and face value splits and dividends.
@@ -42,7 +41,7 @@ _DB_METADATA = None
 # "Ex-Date","Record Date","BC Start Date","BC End Date",
 # "No Delivery Start Date","No Delivery End Date"
 _CorpActionAll = namedtuple('_CorpActionAll', ['sym', 'name', 'industry',
-                                        'series', 'fv', 'purpose','ex_date',
+                                        'series', 'fv', 'purpose', 'ex_date',
                                         'rec_date', 'bc_sdate', 'bc_edate',
                                         'nd_sdate', 'nd_edate'])
 
@@ -79,7 +78,7 @@ def _do_process_purpose(action):
                 for y in _num_per_r.finditer(v):
                     z = y.group()
                     if z.find('%') > 0:
-                        div = float(z.replace('%','')) * (fv/100)
+                        div = float(z.replace('%', '')) * (fv/100)
                     else:
                         div = float(z)
                 actions.append(CorpAction(symbol, ex_date, 'D', 1.0, div))
@@ -133,7 +132,7 @@ def _process_ca_text(ca_text):
         a = _CorpActionAll(*l)
         corp_actions.append(a)
     return _process_purpose(sorted(list(set(corp_actions)),
-                key=lambda x:x.ex_date))
+                key=lambda x: x.ex_date))
 
 def get_corp_action_csv(sym_name=None, time_period=None):
     """
@@ -146,7 +145,7 @@ def get_corp_action_csv(sym_name=None, time_period=None):
         sym_name = sym_name.upper().replace('&', '%26')
         base = 'http://nseindia.com/corporates/datafiles/'
         sym_part = 'CA_%s_LAST_24_MONTHS.csv' % sym_name
-        url =  base + sym_part
+        url = base + sym_part
         module_logger.info("GET: %s", url)
         r = requests.get(url)
         if r.ok:
@@ -155,7 +154,7 @@ def get_corp_action_csv(sym_name=None, time_period=None):
             module_logger.error("GET: %s(%d)", url, r.status_code)
 
         sym_part2 = 'CA_%s_MORE_THAN_24_MONTHS.csv' % sym_name
-        url =  base + sym_part2
+        url = base + sym_part2
         module_logger.info("GET: %s", url)
         r = requests.get(url)
         if r.ok:
@@ -166,7 +165,7 @@ def get_corp_action_csv(sym_name=None, time_period=None):
     if time_period:
         base = 'http://nseindia.com/corporates/datafiles/'
         sym_part = 'CA_LAST_%s.csv' % time_period
-        url =  base + sym_part
+        url = base + sym_part
         module_logger.info("GET: %s", url)
         r = requests.get(url)
         if r.ok:

@@ -1,11 +1,13 @@
-import pandas as pd
+#pylint: disable-msg=broad-except
 
-from tickerplot.sql.sqlalchemy_wrapper import execute_one, get_engine
+import pandas as pd
+from sqlalchemy import desc
+
+from tickerplot.sql.sqlalchemy_wrapper import execute_one
 from tickerplot.sql.sqlalchemy_wrapper import create_or_get_all_scrips_table
 from tickerplot.sql.sqlalchemy_wrapper import create_or_get_nse_equities_hist_data
 from tickerplot.sql.sqlalchemy_wrapper import select_expr
 from tickerplot.sql.sqlalchemy_wrapper import get_metadata
-from sqlalchemy import desc
 _DB_METADATA = None
 
 def get_all_scrips_names_in_db(metadata=None):
@@ -35,7 +37,7 @@ def get_hist_data_as_dataframes_dict(metadata=None, limit=0, max_scrips=16000):
                                 where(hist_data.c.symbol == scrip).\
                                         order_by(desc(hist_data.c.date))
 
-        if limit and type(limit) == int and limit > 0:
+        if limit and isinstance(limit, int) and limit > 0:
             sql_st = sql_st.limit(limit)
 
         scripdata = pd.io.sql.read_sql(sql_st, e)
