@@ -8,11 +8,10 @@ PYLINTRC=${TOPLEVEL}/.pylintrc
 
 PYLINT_OPTS="--rcfile=${PYLINTRC}"
 
-PACKAGE_NAME=*.py
-
-
+PYTHON_FILES=$(git diff --name-only --cached --diff-filter=ACM | grep '\.py$')
 echo "Running Pylint ...."
-${PYLINT} ${PYLINT_OPTS} ${PACKAGE_NAME}
+echo "${PYLINT} ${PYLINT_OPTS} ${PYTHON_FILES}"
+${PYLINT} ${PYLINT_OPTS} ${PYTHON_FILES}
 RESULT=$?
 
 ALL_RESULT=$(( $((${RESULT}&4)) || $((${RESULT}&2)) || $((${RESULT}&1)) ))
