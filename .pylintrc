@@ -59,7 +59,7 @@ confidence=
 disable=
 	#C,
 	fixme,
-	global-statement,
+	#global-statement,
 	invalid-name,
 	bad-continuation,
 	too-few-public-methods,

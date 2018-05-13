@@ -1,4 +1,4 @@
-#pylint: disable-msg=broad-except
+#pylint: disable-msg=broad-except, global-statement
 
 import pandas as pd
 from sqlalchemy import desc
@@ -21,6 +21,7 @@ def get_all_scrips_names_in_db(metadata=None):
 
     return symbols
 
+# FIXME metadata=None doesn't look correct, we need to pass db_meta perhaps?
 def get_hist_data_as_dataframes_dict(metadata=None, limit=0, max_scrips=16000):
     lscrips = get_all_scrips_names_in_db(metadata=metadata)
 

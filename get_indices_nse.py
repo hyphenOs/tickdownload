@@ -2,7 +2,7 @@
 #
 # Refer to LICENSE file and README file for licensing information.
 #
-#pylint: disable-msg=broad-except
+#pylint: disable-msg=broad-except,global-statement
 
 import os
 import sys
@@ -21,8 +21,6 @@ from tickerplot.sql.sqlalchemy_wrapper import get_metadata
 
 from tickerplot.utils.logger import get_logger
 module_logger = get_logger(os.path.basename(__file__))
-
-_DB_METADATA = None
 
 _WARN_DAYS = 100
 _MAX_DAYS = 365
@@ -60,7 +58,7 @@ _INDICES_DICT = {
 
                 }
 
-def download_and_save_index(idx, start_date=None, end_date=None):
+def download_and_save_index(idx, db_meta, start_date=None, end_date=None):
     """
     Returns an iterator over the rows of the data
 
@@ -105,7 +103,7 @@ def download_and_save_index(idx, start_date=None, end_date=None):
         if e2 > e:
             e2 = e
 
-    tbl = create_or_get_nse_indices_hist_data(metadata=_DB_METADATA)
+    tbl = create_or_get_nse_indices_hist_data(metadata=db_meta)
 
     insert_statements = []
     for row in all_data:
@@ -123,7 +121,7 @@ def download_and_save_index(idx, start_date=None, end_date=None):
                                         close=c)
         insert_statements.append(insert_st)
 
-    results = execute_many_insert(insert_statements, engine=_DB_METADATA.bind)
+    results = execute_many_insert(insert_statements, engine=db_meta.bind)
     for r in results:
         r.close()
 
@@ -172,13 +170,13 @@ def _do_get_index(idx, start_dt, end_dt):
     print vals
     return vals
 
-def get_indices(indices, from_date=None, to_date=None):
+def get_indices(indices, db_meta, from_date=None, to_date=None):
     """
     Downloads all indices givenin the list.
     """
     for idx in indices:
         module_logger.info("Downloading data for %s.", idx.upper())
-        download_and_save_index(idx.upper(), from_date, to_date)
+        download_and_save_index(idx.upper(), db_meta, from_date, to_date)
     return 0
 
 def _format_indices():
@@ -243,8 +241,7 @@ def main(args):
     # Make sure we can access the DB path if specified or else exit right here.
     if args.dbpath:
         try:
-            global _DB_METADATA
-            _DB_METADATA = get_metadata(args.dbpath)
+            db_meta = get_metadata(args.dbpath)
         except Exception as e:
             print ("Not a valid DB URL: {} (Exception: {})".format(
                                                             args.dbpath, e))
@@ -298,7 +295,7 @@ def main(args):
     if args.all_indices:
         unprocessed = _INDICES_DICT.keys()
 
-    return get_indices(unprocessed, args.fromdate, args.todate)
+    return get_indices(unprocessed, db_meta, args.fromdate, args.todate)
 
 
 if __name__ == '__main__':

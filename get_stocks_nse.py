@@ -1,7 +1,7 @@
 #
 # Refer to LICENSE file and README file for licensing information.
 #
-#pylint: disable-msg=broad-except
+#pylint: disable-msg=broad-except,global-statement
 """
 Uses daily bhavcopy to download historical data for all stocks.
 One challenge is, bhavcopy has the symbol name for that day. In case of NSE,
@@ -45,7 +45,7 @@ from tickerplot.utils.logger import get_logger
 
 module_logger = get_logger(os.path.basename(__file__))
 
-_BHAV_HEADERS =   {'Host': 'www.nseindia.com',
+_BHAV_HEADERS = {'Host': 'www.nseindia.com',
              'User-Agent':'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:54.0) Gecko/20100101 Firefox/54.0',
              'Accept':'application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5',
              'Accept-Encoding':'gzip, deflate, br',
@@ -212,7 +212,7 @@ def _update_bhavcopy(curdate, stocks_dict):
     module_logger.debug("Deleted %d rows.", r.rowcount)
 
     insert_statements = []
-    for k,v in stocks_dict.iteritems():
+    for k, v in stocks_dict.iteritems():
         ins = nse_eq_hist_data.insert().values(symbol=k, date=curdate,
                                                 open=v.open, high=v.high,
                                                 low=v.low, close=v.close,

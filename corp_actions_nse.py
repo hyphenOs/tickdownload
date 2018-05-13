@@ -1,7 +1,7 @@
 #
 # Refer to LICENSE file and README file for licensing information.
 #
-#pylint: disable-msg=broad-except
+#pylint: disable-msg=broad-except,global-statement
 
 """Get's data for corporate Actions for a given stock on NSE. Parses and
 stores the bonus and face value splits and dividends.
@@ -31,8 +31,6 @@ from tickerplot.sql.sqlalchemy_wrapper import execute_many_insert
 from tickerplot.sql.sqlalchemy_wrapper import get_metadata
 
 module_logger = get_logger(os.path.basename(__file__))
-
-_DB_METADATA = None
 
 #FIXME : Implement bonus/split processing from a specific date.
 
@@ -203,8 +201,7 @@ def main(args):
     # Make sure we can access the DB path if specified or else exit right here.
     if args.dbpath:
         try:
-            global _DB_METADATA
-            _DB_METADATA = get_metadata(args.dbpath)
+            db_meta = get_metadata(args.dbpath)
         except Exception as e:
             print ("Not a valid DB URL: {} (Exception: {})".format(
                                                             args.dbpath, e))
@@ -243,7 +240,7 @@ def main(args):
             print("Date '{}' in unsupported format".format(args.from_date))
             return -1
 
-    tbl = create_or_get_nse_corp_actions_hist_data(metadata=_DB_METADATA)
+    tbl = create_or_get_nse_corp_actions_hist_data(metadata=db_meta)
 
     all_insert_statements = []
     for corp_action in all_corp_actions:
@@ -257,7 +254,7 @@ def main(args):
         module_logger.debug("insert_st : %s", insert_st.compile().params)
 
     results = execute_many_insert(all_insert_statements,
-                                    engine=_DB_METADATA.bind)
+                                    engine=db_meta.bind)
     for result in results:
         result.close()
 
