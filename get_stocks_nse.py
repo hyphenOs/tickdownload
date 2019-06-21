@@ -1,7 +1,7 @@
 #
 # Refer to LICENSE file and README file for licensing information.
 #
-#pylint: disable-msg=broad-except,global-statement
+# pylint: disable-msg=broad-except,global-statement
 """
 Uses daily bhavcopy to download historical data for all stocks.
 One challenge is, bhavcopy has the symbol name for that day. In case of NSE,
@@ -34,11 +34,11 @@ else:
 from tickerplot.nse.nse_utils import nse_get_name_change_tuples, ScripOHLCVD
 
 from tickerplot.sql.sqlalchemy_wrapper import \
-                            create_or_get_nse_bhav_deliv_download_info, \
-                                create_or_get_nse_equities_hist_data
+    create_or_get_nse_bhav_deliv_download_info, \
+    create_or_get_nse_equities_hist_data
 from tickerplot.sql.sqlalchemy_wrapper import execute_one, execute_one_insert, \
-                                            execute_many_insert
-from tickerplot.sql.sqlalchemy_wrapper import select_expr, and_expr
+    execute_many_insert
+from tickerplot.sql.sqlalchemy_wrapper import and_expr, select_expr
 from tickerplot.sql.sqlalchemy_wrapper import get_metadata
 
 from tickerplot.utils.logger import get_logger
@@ -46,25 +46,26 @@ from tickerplot.utils.logger import get_logger
 module_logger = get_logger(os.path.basename(__file__))
 
 _BHAV_HEADERS = {'Host': 'www.nseindia.com',
-             'User-Agent':'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:54.0) Gecko/20100101 Firefox/54.0',
-             'Accept':'application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5',
-             'Accept-Encoding':'gzip, deflate, br',
-             'Referer':'https://www.nseindia.com/product/content/equities/equities/archives_eq.htm',
-             'Connection': 'keep-alive',
-             'DNT':'1'}
+                 'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:54.0) Gecko/20100101 Firefox/54.0',
+                 'Accept': 'application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5',
+                 'Accept-Encoding': 'gzip, deflate, br',
+                 'Referer': 'https://www.nseindia.com/product/content/equities/equities/archives_eq.htm',
+                 'Connection': 'keep-alive',
+                 'DNT': '1'}
 
 _DB_METADATA = None
 
-_date_fmt = '%d-%m-%Y'
+_DATE_FMT = '%d-%m-%Y'
 
-_bhav_url_base = 'https://www.nseindia.com/content/historical/EQUITIES/' \
-                '%(year)s/%(mon)s/cm%(dd)s%(mon)s%(year)sbhav.csv.zip'
+_BHAV_URL_BASE = 'https://www.nseindia.com/content/historical/EQUITIES/' \
+    '%(year)s/%(mon)s/cm%(dd)s%(mon)s%(year)sbhav.csv.zip'
 
-_deliv_url_base = 'https://www.nseindia.com/archives/equities/mto/' \
-                'MTO_%(dd)s%(mm)s%(year)s.DAT'
+_DELIV_URL_BASE = 'https://www.nseindia.com/archives/equities/mto/' \
+    'MTO_%(dd)s%(mm)s%(year)s.DAT'
 
 # Warn user if number of days data is greater than this
 _WARN_DAYS = 100
+
 
 def get_bhavcopy(date='01-01-2002'):
     """Downloads a bhavcopy for a given date and returns a dictionary of rows
@@ -72,9 +73,9 @@ def get_bhavcopy(date='01-01-2002'):
     bhavcopy for a given day is already downloaded, returns None. date is in
     DD-MM-YYYY format"""
 
-    global _date_fmt
+    global _DATE_FMT
     if isinstance(date, str):
-        d2 = dt.date(dt.strptime(date, _date_fmt))
+        d2 = dt.date(dt.strptime(date, _DATE_FMT))
     elif isinstance(date, dt):
         d2 = dt.date(date)
     else:
@@ -84,20 +85,21 @@ def get_bhavcopy(date='01-01-2002'):
     mm = d2.strftime('%0m')
     dd = d2.strftime('%0d')
 
-    if _bhavcopy_downloaded(d2): ## already downloaded
+    if _bhavcopy_downloaded(d2):  # already downloaded
         return None
 
-    global _bhav_url_base
-    global _deliv_url_base
+    global _BHAV_URL_BASE
+    global _DELIV_URL_BASE
 
-    bhav_url = _bhav_url_base % ({'year':yr, 'mon':mon, 'dd':dd})
-    deliv_url = _deliv_url_base % ({'year':yr, 'mm':mm, 'dd':dd})
+    bhav_url = _BHAV_URL_BASE % ({'year': yr, 'mon': mon, 'dd': dd})
+    deliv_url = _DELIV_URL_BASE % ({'year': yr, 'mm': mm, 'dd': dd})
+
 
     try:
-        x = requests.get(bhav_url, headers=_BHAV_HEADERS)
+        bhavcopy_response = requests.get(bhav_url, headers=_BHAV_HEADERS)
         module_logger.info("GET:Bhavcopy URL: %s", bhav_url)
 
-        y = requests.get(deliv_url, headers=_BHAV_HEADERS)
+        delivery_response = requests.get(deliv_url, headers=_BHAV_HEADERS)
         module_logger.info("GET:Delivery URL: %s", deliv_url)
     except requests.RequestException as e:
         module_logger.exception(e)
@@ -108,35 +110,38 @@ def get_bhavcopy(date='01-01-2002'):
 
     # We do all of the following to avoid - network calls
     error_code = None
-    if x.status_code == 404 or y.status_code == 404:
+    if bhavcopy_response.status_code == 404 or delivery_response.status_code == 404:
         error_code = 'NOT_FOUND'
     else:
-        if not (x.ok and y.ok):
+        if not (bhavcopy_response.ok and delivery_response.ok):
             error_code = 'DLOAD_ERR'
 
-    _update_dload_success(d2, x.ok, y.ok, error_code)
+    _update_dload_success(d2, bhavcopy_response.ok,
+                          delivery_response.ok, error_code)
 
-    if x.ok and y.ok:
-        z = ZipFile(bio(x.content))
-        for name in z.namelist():
+    if bhavcopy_response.ok and delivery_response.ok:
+        bhavs = ZipFile(bio(bhavcopy_response.content))
+        for name in bhavs.namelist():
             csv_name = name
-        delivery = bio(y.text)
-        with z.open(csv_name) as bhav:
+        delivery = bio(delivery_response.content)
+        with bhavs.open(csv_name) as bhav:
             i = 0
             for line in bhav:
                 if i == 0:
                     i += 1
                     continue
+                line = line.decode()
                 l = line.split(',')
                 if l[1] not in ['EQ', 'BE', 'BZ']:
                     continue
                 sym, o, h, l, c, v, d = l[0], l[2], l[3], l[4], \
-                                                l[5], l[8], l[8]
+                    l[5], l[8], l[8]
                 stocks_dict[sym] = [float(o), float(h), float(l), float(c),
-                                    long(v), long(d)]
+                                    int(v), int(d)]
 
         i = 0
         for line in delivery:
+            line = line.decode()
             if not line.startswith('20'):
                 i += 1
                 continue
@@ -151,20 +156,25 @@ def get_bhavcopy(date='01-01-2002'):
             try:
                 stocks_dict[sym][-1] = int(d)
             except KeyError:
-                module_logger.error("For Symbol: %s Delivery Data found but no Bhavcopy Data", sym)
+                module_logger.error(
+                    "For Symbol: %s Delivery Data found but no Bhavcopy Data", sym)
             i += 1
 
         for sym in stocks_dict.keys():
             stocks_dict[sym] = ScripOHLCVD(*stocks_dict[sym])
-            module_logger.debug("ScripInfo(%s): %s", sym, str(stocks_dict[sym]))
+            module_logger.debug("ScripInfo(%s): %s", sym,
+                                str(stocks_dict[sym]))
 
         return stocks_dict
     else:
-        if not x.ok:
-            module_logger.error("GET:Bhavcopy URL %s (%d)", bhav_url, x.status_code)
-        if not y.ok:
-            module_logger.error("GET:Delivery URL %s (%d)", deliv_url, y.status_code)
+        if not bhavcopy_response.ok:
+            module_logger.error("GET:Bhavcopy URL %s (%d)",
+                                bhav_url, bhavcopy_response.status_code)
+        if not delivery_response.ok:
+            module_logger.error("GET:Delivery URL %s (%d)",
+                                deliv_url, delivery_response.status_code)
         return None
+
 
 def _update_dload_success(fdate, bhav_ok, deliv_ok, error_code=None):
     """ Update whether bhavcopy download and delivery data download for given
@@ -185,25 +195,27 @@ def _update_dload_success(fdate, bhav_ok, deliv_ok, error_code=None):
     # https://groups.google.com/forum/#!topic/sqlalchemy/63OnY_ZFmic
     if not first_row:
         ins_or_upd_st = tbl.insert().values(download_date=fdate,
-                                        bhav_success=bhav_ok,
-                                        deliv_success=deliv_ok,
-                                        error_type=error_code)
-    else:
-        module_logger.info("Found row. Updating %s", str(first_row))
-        ins_or_upd_st = tbl.update().where(tbl.c.download_date == fdate).\
-                                        values(download_date=fdate,
                                             bhav_success=bhav_ok,
                                             deliv_success=deliv_ok,
                                             error_type=error_code)
+    else:
+        module_logger.info("Found row. Updating %s", str(first_row))
+        ins_or_upd_st = tbl.update().where(tbl.c.download_date == fdate).\
+            values(download_date=fdate,
+                   bhav_success=bhav_ok,
+                   deliv_success=deliv_ok,
+                   error_type=error_code)
     module_logger.debug(ins_or_upd_st.compile().params)
 
     result = execute_one_insert(ins_or_upd_st, engine=_DB_METADATA.bind)
     result.close()
 
+
 def _update_bhavcopy(curdate, stocks_dict):
     """update bhavcopy Database date in DD-MM-YYYY format."""
 
-    nse_eq_hist_data = create_or_get_nse_equities_hist_data(metadata=_DB_METADATA)
+    nse_eq_hist_data = create_or_get_nse_equities_hist_data(
+        metadata=_DB_METADATA)
 
     # delete for today's date if there's anything FWIW
     module_logger.debug("Deleting any old data for date %s.", curdate)
@@ -212,18 +224,19 @@ def _update_bhavcopy(curdate, stocks_dict):
     module_logger.debug("Deleted %d rows.", r.rowcount)
 
     insert_statements = []
-    for k, v in stocks_dict.iteritems():
+    for k, v in stocks_dict.items():
         ins = nse_eq_hist_data.insert().values(symbol=k, date=curdate,
-                                                open=v.open, high=v.high,
-                                                low=v.low, close=v.close,
-                                                volume=v.volume,
-                                                delivery=v.deliv)
+                                               open=v.open, high=v.high,
+                                               low=v.low, close=v.close,
+                                               volume=v.volume,
+                                               delivery=v.deliv)
         insert_statements.append(ins)
         module_logger.debug(ins.compile().params)
 
     results = execute_many_insert(insert_statements, engine=_DB_METADATA.bind)
     for r in results:
         r.close()
+
 
 def _bhavcopy_downloaded(fdate):
     """
@@ -249,6 +262,7 @@ def _bhavcopy_downloaded(fdate):
 
     return (result[1] and result[2]) or ignore_error
 
+
 def _apply_name_changes_to_db(syms):
     """Changes security names in nse_hist_data table so the name of the security
     is always the latest."""
@@ -264,14 +278,15 @@ def _apply_name_changes_to_db(syms):
         chdt = dt.date(dt.strptime(chdate, '%d-%b-%Y'))
 
         upd = hist_data.update().values(symbol=new).\
-                where(and_expr(hist_data.c.symbol == old,
-                            hist_data.c.date < chdt))
+            where(and_expr(hist_data.c.symbol == old,
+                           hist_data.c.date < chdt))
 
         update_statements.append(upd)
 
     results = execute_many_insert(update_statements, engine=_DB_METADATA.bind)
     for r in results:
         r.close()
+
 
 def main(args):
     # We run the full program
@@ -286,13 +301,13 @@ def main(args):
     # --from option
     parser.add_argument("--from",
                         help="From Date in DD-MM-YYYY format. " \
-                                "Default is 01-01-2002",
+                        "Default is 01-01-2002",
                         dest='fromdate',
                         default="01-01-2002")
     # --to option
     parser.add_argument("--to",
                         help="From Date in DD-MM-YYYY format. " \
-                                "Default is Today.",
+                        "Default is Today.",
                         dest='todate',
                         default="today")
 
@@ -308,6 +323,7 @@ def main(args):
                         dest="dbpath")
 
     args = parser.parse_args()
+    print(args)
 
     # Make sure we can access the DB path if specified or else exit right here.
     if args.dbpath:
@@ -315,22 +331,22 @@ def main(args):
             global _DB_METADATA
             _DB_METADATA = get_metadata(args.dbpath)
         except Exception as e:
-            print ("Not a valid DB URL: {} (Exception: {})".format(
-                                                            args.dbpath, e))
+            print("Not a valid DB URL: {} (Exception: {})".format(
+                args.dbpath, e))
             return -1
 
     try:
-        from_date = dt.strptime(args.fromdate, _date_fmt)
+        from_date = dt.strptime(args.fromdate, _DATE_FMT)
         if args.todate.lower() == 'today':
-            args.todate = dt.now().strftime(_date_fmt)
-        to_date = dt.strptime(args.todate, _date_fmt)
+            args.todate = dt.now().strftime(_DATE_FMT)
+        to_date = dt.strptime(args.todate, _DATE_FMT)
     except ValueError:
-        print parser.format_usage()
+        print(parser.format_usage())
         return -1
 
     # We are now ready to download data
     if from_date > to_date:
-        print parser.format_usage()
+        print(parser.format_usage())
         return -1
 
     num_days = to_date - from_date
@@ -339,8 +355,8 @@ def main(args):
         if args.sure:
             sure = True
         else:
-            sure = raw_input("Tatal number of days for download is %1d. "
-                             "Are you Sure?[y|N] " % num_days.days)
+            sure = input("Tatal number of days for download is %1d. "
+                         "Are you Sure?[y|N] " % num_days.days)
             if sure.lower() in ("y", "ye", "yes"):
                 sure = True
             else:
