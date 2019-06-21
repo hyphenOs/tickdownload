@@ -6,7 +6,6 @@
 
 import os
 import sys
-import urllib2
 import time
 import random
 from datetime import datetime as dt
@@ -107,11 +106,11 @@ def download_and_save_index(idx, db_meta, start_date=None, end_date=None):
 
     insert_statements = []
     for row in all_data:
-        d = dt.date(dt.strptime(row[0].strip(), '%d-%b-%Y'))
-        o = float(row[1])
-        h = float(row[2])
-        l = float(row[3])
-        c = float(row[4])
+        d = dt.date(dt.strptime(row[1].strip(), '%d-%b-%Y'))
+        o = float(row[2])
+        h = float(row[3])
+        l = float(row[4])
+        c = float(row[5])
 
         insert_st = tbl.insert().values(symbol=idx,
                                         date=d,
@@ -130,7 +129,7 @@ def _do_get_index(idx, start_dt, end_dt):
     module_logger.info("getting data for %s : from : %s to : %s",
                         idx, start_dt, end_dt)
 
-    params = {'idxstr' : urllib2.quote(_INDICES_DICT[idx][0]),
+    params = {'idxstr' : requests.utils.quote(_INDICES_DICT[idx][0]),
                 'from' : start_dt,
                 'to'   : end_dt
              }
@@ -167,7 +166,7 @@ def _do_get_index(idx, start_dt, end_dt):
     ## Optionally get the CSV - this often gives 404, we've to find why!
     # The CSV downloading part is unreliable - so we are just downloading
     # 100 entries at a time
-    print vals
+    # print(vals)
     return vals
 
 def get_indices(indices, db_meta, from_date=None, to_date=None):
@@ -182,7 +181,7 @@ def get_indices(indices, db_meta, from_date=None, to_date=None):
 def _format_indices():
 
     idx_list = ["", "Currently Supported Indices Are:"]
-    for idx, idxval in _INDICES_DICT.iteritems():
+    for idx, idxval in _INDICES_DICT.items():
         idx_str = "Index(%s) : %s, From %s" % (idx, idxval[0], idxval[1])
         idx_list.append(idx_str)
     idx_list.append("")
@@ -243,7 +242,7 @@ def main(args):
         try:
             db_meta = get_metadata(args.dbpath)
         except Exception as e:
-            print ("Not a valid DB URL: {} (Exception: {})".format(
+            print("Not a valid DB URL: {} (Exception: {})".format(
                                                             args.dbpath, e))
             return -1
 
@@ -259,12 +258,12 @@ def main(args):
             args.todate = dt.now().strftime(_DATE_FMT)
         to_date = dt.strptime(args.todate, _DATE_FMT)
     except ValueError:
-        print parser.format_usage()
+        print(parser.format_usage())
         sys.exit(-1)
 
     # We are now ready to download data
     if args.fromdate and from_date > to_date:
-        print parser.format_usage()
+        print(parser.format_usage())
         sys.exit(-1)
 
     if args.fromdate:
@@ -273,7 +272,7 @@ def main(args):
             if args.sure:
                 sure = True
             else:
-                sure = raw_input("Tatal number of days for download is %1d. "
+                sure = input("Tatal number of days for download is %1d. "
                              "Are you Sure?[y|N] " % num_days.days)
                 if sure.lower() in ("y", "ye", "yes"):
                     sure = True
@@ -282,7 +281,7 @@ def main(args):
         else:
             sure = True
     else:
-        sure = raw_input("Downloading data from beginning for the Index. "
+        sure = input("Downloading data from beginning for the Index. "
                      "Are you Sure?[y|N] ")
         if sure.lower() in ("y", "ye", "yes"):
             sure = True

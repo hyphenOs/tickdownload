@@ -16,7 +16,7 @@ infy.columns = list('OHLCVD')
 
 infy = infy[::-1] # BSE scrip files are reverse latest first
 
-print infy[:10]
+print(infy[:10])
 
 hdf_filename = 'infy.h5'
 
@@ -38,7 +38,7 @@ h5store = pd.HDFStore(hdf_filename)
 infy = h5store['infy']
 corp_actions = h5store.get_storer('infy').attrs.corp_actions
 
-print infy[:10]
+print(infy[:10])
 for act in corp_actions:
     if act.action in ['B', 'S']:
         ts = pd.Timestamp(act.ex_date)
@@ -50,5 +50,5 @@ for act in corp_actions:
         infy['V'][infy.index < ts] = infy['V'] / ratio
         infy['D'][infy.index < ts] = infy['D'] / ratio
 
-print infy[:10]
+print(infy[:10])
 h5store.close()

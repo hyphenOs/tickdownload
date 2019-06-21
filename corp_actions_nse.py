@@ -71,7 +71,7 @@ def _do_process_purpose(action):
         #r = re.compile(r'(?:.*?)(?P<div>(?:(?:div.*?)(\\d+%)|(?:div.*?(rs\\.?)?)\\s*(\\d+\\.?\\d*)))')
 
         for x in _div_regex.finditer(purpose):
-            for _, v in x.groupdict().iteritems():
+            for _, v in x.groupdict().items():
                 v = re.sub(_rsr_regex, '', v)
                 for y in _num_per_r.finditer(v):
                     z = y.group()
@@ -203,7 +203,7 @@ def main(args):
         try:
             db_meta = get_metadata(args.dbpath)
         except Exception as e:
-            print ("Not a valid DB URL: {} (Exception: {})".format(
+            print("Not a valid DB URL: {} (Exception: {})".format(
                                                             args.dbpath, e))
             return -1
 

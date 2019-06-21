@@ -39,7 +39,7 @@ def _do_get_data_for_security(script_code, sdate, edate):
     form_data = {}
     for el in hidden_elems:
         m = el.attrs
-        if m.has_key('value'):
+        if 'value' in m:
             form_data[m['name']] = m['value']
 
 
@@ -94,6 +94,6 @@ def _do_get_data_for_security(script_code, sdate, edate):
 
 if  __name__ == '__main__':
 
-    print get_data_for_security('500002', GLOBAL_START_DATE)
+    print(get_data_for_security('500002', GLOBAL_START_DATE))
     #for x in bse_get_all_stocks_list(100,1):
         #get_data_for_security(x.bseid, GLOBAL_START_DATE)

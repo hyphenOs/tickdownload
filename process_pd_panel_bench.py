@@ -11,7 +11,7 @@ from __future__ import print_function
 import time
 import cProfile
 import pstats
-import StringIO
+from io import StringIO
 
 import pandas as pd
 import perf
@@ -56,7 +56,7 @@ class ProcessPandasPanelBench(object):
         selectors = panel_bench_lc(panel=panel)
 
         pr.disable()
-        s = StringIO.StringIO()
+        s = StringIO()
         sort_by = 'cumulative'
         ps = pstats.Stats(pr, stream=s).sort_stats(sort_by)
         ps.print_stats(0.1)
@@ -65,7 +65,7 @@ class ProcessPandasPanelBench(object):
 
         print(self.limit_rows, now0 - then0)
         print(len(selectors))
-        print (s.getvalue())
+        print(s.getvalue())
 
         # FIXME: Add a Contextanager Class
         then0 = time.time()
@@ -75,7 +75,7 @@ class ProcessPandasPanelBench(object):
         selectors = panel_bench_vector(panel=panel)
 
         pr.disable()
-        s = StringIO.StringIO()
+        s = StringIO()
         sort_by = 'cumulative'
         ps = pstats.Stats(pr, stream=s).sort_stats(sort_by)
         ps.print_stats(0.1)
@@ -84,7 +84,7 @@ class ProcessPandasPanelBench(object):
 
         print (self.limit_rows, now0 - then0)
         print (len(selectors))
-        print (s.getvalue())
+        print(s.getvalue())
 
     def run_bench_perf(self, panel):
 
@@ -99,7 +99,7 @@ class ProcessPandasPanelBench(object):
                                                 limit=self.limit_rows)
         panel = pd.Panel(scripdata_dict)
 
-        print (panel)
+        print(panel)
         if self.method_name == 'cProfile':
             self.run_bench_cprofile(panel)
         else:
