@@ -12,7 +12,7 @@ from __future__ import print_function
 import time
 import cProfile
 import pstats
-import StringIO
+from io import StringIO
 
 import pandas as pd
 
@@ -40,7 +40,7 @@ while limit < max_limit:
 
     pr.disable()
     pr.dump_stats('vector.stats')
-    s = StringIO.StringIO()
+    s = StringIO()
     sort_by = 'cumulative'
     ps = pstats.Stats(pr, stream=s).sort_stats(sort_by)
     ps.print_stats(0.1)
