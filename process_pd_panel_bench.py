@@ -14,7 +14,6 @@ import pstats
 from io import StringIO
 
 import pandas as pd
-import perf
 
 from read_sql_data import get_hist_data_as_dataframes_dict
 from tickerplot.sql.sqlalchemy_wrapper import get_metadata
@@ -42,8 +41,8 @@ class ProcessPandasPanelBench(object):
         self.metadata = get_metadata(self.db_path)
 
     def set_method(self, method_name='cProfile'):
-        if method_name not in ('cprofile', 'perf'):
-            raise ValueError("Method name should be one of 'cProfile', 'perf'")
+        if method_name not in ('cprofile', ):
+            raise ValueError("Method name should be 'cProfile'")
         self.method_name = method_name
 
     def run_bench_cprofile(self, panel):
@@ -86,11 +85,6 @@ class ProcessPandasPanelBench(object):
         print (len(selectors))
         print(s.getvalue())
 
-    def run_bench_perf(self, panel):
-
-        r = perf.Runner(loops=1)
-        r.bench_func("lc panel", panel_bench_lc, panel)
-
     def run_bench(self):
 
         # setup - common
@@ -100,10 +94,7 @@ class ProcessPandasPanelBench(object):
         panel = pd.Panel(scripdata_dict)
 
         print(panel)
-        if self.method_name == 'cProfile':
-            self.run_bench_cprofile(panel)
-        else:
-            self.run_bench_perf(panel)
+        self.run_bench_cprofile(panel)
 
 
 if __name__ == '__main__':

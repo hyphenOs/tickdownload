@@ -7,8 +7,7 @@ name = "pypi"
 pylint = "*"
 
 [packages]
-perf = "*"
-tickerplot = { git = "https://github.com/gabhijit/tickerplot.git", ref="v0.0.6", editable="True" }
+tickerplot = { git = "https://github.com/hyphenOs/tickerplot.git", ref="v0.0.7", editable="True" }
 
 [requires]
 python_version = "2.7"
